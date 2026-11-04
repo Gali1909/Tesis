@@ -1,0 +1,15 @@
+{
+  "idf.currentSetup": "C:\\esp\\v5.4.4\\esp-idf",
+  "idf.portWin": "COM20",
+  "idf.flashType": "UART",
+  "idf.openOcdConfigs": [
+    "board/esp32p4-builtin.cfg"
+  ],
+  "idf.customExtraVars": {},
+  "clangd.path": "C:\\Espressif\\tools\\esp-clang\\esp-18.1.2_20240912\\esp-clang\\bin\\clangd.exe",
+  "clangd.arguments": [
+    "--background-index",
+    "--query-driver=**",
+    "--compile-commands-dir=c:\\Users\\juand\\OneDrive\\Documentos\\Tesis\\Entrenador\\Out\\Entrenador_P4_C6_OTA\\build"
+  ]
+}

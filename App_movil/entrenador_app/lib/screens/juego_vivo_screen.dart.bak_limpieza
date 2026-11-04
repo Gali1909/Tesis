@@ -1,0 +1,461 @@
+import 'package:flutter/material.dart';
+
+import '../services/database_helper.dart';
+import '../services/juego_vivo_db.dart';
+import '../services/marcador_db.dart';
+import 'turno_screen.dart';
+import 'cambios_screen.dart';
+
+const Color _fondo = Color(0xFF14171C);
+const Color _superficie = Color(0xFF1E232B);
+const Color _cian = Color(0xFF0ABDCF);
+const Color _rojo = Color(0xFFE63946);
+const Color _textoSuave = Color(0xFF9AA4B2);
+
+class JuegoVivoScreen extends StatefulWidget {
+  final int juegoId;
+
+  const JuegoVivoScreen({super.key, required this.juegoId});
+
+  @override
+  State<JuegoVivoScreen> createState() => _JuegoVivoScreenState();
+}
+
+class _JuegoVivoScreenState extends State<JuegoVivoScreen> {
+  Map<String, dynamic>? _juego;
+  List<Map<String, dynamic>> _entradas = [];
+  String _nombrePropio = 'Mi equipo';
+  bool _cargando = true;
+  bool _ocupado = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargar();
+  }
+
+  Future<void> _cargar() async {
+    final db = DatabaseHelper.instance;
+    final juego = await db.obtenerJuegoVivo(widget.juegoId);
+    final entradas = await db.obtenerEntradasJuego(widget.juegoId);
+    final equipos = await db.obtenerEquipos();
+    if (!mounted) return;
+    if (juego == null || juego['estado'] != 'en_juego') {
+      Navigator.pop(context, true);
+      return;
+    }
+    var nombre = 'Mi equipo';
+    for (final e in equipos) {
+      if (e.tipo == 'propio') {
+        nombre = e.nombre;
+        break;
+      }
+    }
+    setState(() {
+      _juego = juego;
+      _entradas = entradas;
+      _nombrePropio = nombre;
+      _cargando = false;
+    });
+  }
+
+  String _mensaje(Object e) => e.toString().replaceFirst('Bad state: ', '');
+
+  void _aviso(String texto) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(texto)));
+  }
+
+  Future<void> _ejecutar(Future<void> Function() accion) async {
+    if (_ocupado) return;
+    setState(() => _ocupado = true);
+    try {
+      await accion();
+    } catch (e) {
+      _aviso(_mensaje(e));
+    }
+    await _cargar();
+    if (mounted) setState(() => _ocupado = false);
+  }
+
+  Future<bool> _confirmar(String titulo, String texto, String boton) async {
+    final r = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(titulo),
+        content: Text(texto),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('CANCELAR'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(boton),
+          ),
+        ],
+      ),
+    );
+    return r == true;
+  }
+
+  Future<void> _terminar() async {
+    final p = _total('carreras_propias');
+    final r = _total('carreras_rival');
+    final ok = await _confirmar(
+      'Terminar juego',
+      'Se guarda el marcador final ($p - $r) y el juego cuenta para el record.',
+      'TERMINAR',
+    );
+    if (!ok) return;
+    try {
+      await DatabaseHelper.instance.terminarJuegoVivo(widget.juegoId);
+    } catch (e) {
+      _aviso(_mensaje(e));
+      return;
+    }
+    if (!mounted) return;
+    Navigator.pop(context, true);
+  }
+
+  Future<void> _descartar() async {
+    final ok = await _confirmar(
+      'Descartar juego',
+      'Se borra este juego en curso con todo lo capturado. No se puede deshacer.',
+      'DESCARTAR',
+    );
+    if (!ok) return;
+    try {
+      await DatabaseHelper.instance.descartarJuegoVivo(widget.juegoId);
+    } catch (e) {
+      _aviso('No se pudo descartar: ${_mensaje(e)}');
+      return;
+    }
+    if (!mounted) return;
+    Navigator.pop(context, true);
+  }
+
+  Future<void> _deshacer() => _ejecutar(() async {
+        final ok = await DatabaseHelper.instance.deshacerVivo(widget.juegoId);
+        if (!ok) _aviso('No hay nada que deshacer.');
+      });
+
+  int get _entrada => (_juego!['entrada_actual'] as int?) ?? 1;
+  String get _mitad => (_juego!['mitad_actual'] as String?) ?? 'alta';
+  int get _outs => (_juego!['outs_actuales'] as int?) ?? 0;
+  bool get _local => ((_juego!['propio_local'] as int?) ?? 0) == 1;
+  bool get _bateaPropio => (_local && _mitad == 'baja') || (!_local && _mitad == 'alta');
+  String get _nombreRival => (_juego!['rival_nombre'] as String?) ?? 'Rival';
+
+  int _total(String col) =>
+      _entradas.fold<int>(0, (a, e) => a + ((e[col] as int?) ?? 0));
+
+  Widget _celda(
+    String t, {
+    bool resaltar = false,
+    bool negrita = false,
+    Color color = Colors.white,
+  }) {
+    return Container(
+      width: 34,
+      height: 34,
+      alignment: Alignment.center,
+      decoration: resaltar
+          ? BoxDecoration(
+              color: const Color(0x330ABDCF),
+              border: Border.all(color: _cian),
+              borderRadius: BorderRadius.circular(6),
+            )
+          : null,
+      child: Text(
+        t,
+        style: TextStyle(
+          color: color,
+          fontWeight: negrita ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+    );
+  }
+
+  Widget _linescore() {
+    final columnas = _entradas.length > 9 ? _entradas.length : 9;
+
+    String valor(int numero, String col) {
+      for (final e in _entradas) {
+        if (e['numero'] == numero) return '${(e[col] as int?) ?? 0}';
+      }
+      return '';
+    }
+
+    Widget fila(String nombre, String col, bool batea) {
+      return Row(
+        children: [
+          SizedBox(
+            width: 90,
+            child: Text(
+              nombre,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ),
+          for (var i = 1; i <= columnas; i++)
+            _celda(valor(i, col), resaltar: batea && i == _entrada),
+          _celda('${_total(col)}', negrita: true, color: _cian),
+        ],
+      );
+    }
+
+    final propia = fila(_nombrePropio, 'carreras_propias', _bateaPropio);
+    final rival = fila(_nombreRival, 'carreras_rival', !_bateaPropio);
+    final filas = _local ? [rival, propia] : [propia, rival];
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: _superficie,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const SizedBox(width: 90),
+                for (var i = 1; i <= columnas; i++) _celda('$i', color: _textoSuave),
+                _celda('R', color: _textoSuave, negrita: true),
+              ],
+            ),
+            const SizedBox(height: 4),
+            filas[0],
+            const SizedBox(height: 4),
+            filas[1],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _indicadorOuts() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Text(
+          'OUTS',
+          style: TextStyle(color: _textoSuave, fontSize: 12, letterSpacing: 2),
+        ),
+        const SizedBox(width: 10),
+        for (var i = 0; i < 3; i++)
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            width: 18,
+            height: 18,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: i < _outs ? _rojo : Colors.transparent,
+              border: Border.all(color: _rojo, width: 2),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _tarjetaMarcador() {
+    final alta = _mitad == 'alta';
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _superficie,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0x550ABDCF)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _bloqueEquipo(_nombrePropio, _total('carreras_propias')),
+              _bloqueEquipo(_nombreRival, _total('carreras_rival')),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                alta ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                color: _cian,
+                size: 32,
+              ),
+              Text(
+                '${alta ? 'ALTA' : 'BAJA'} DE LA $_entrada',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Batea: ${_bateaPropio ? _nombrePropio : _nombreRival}',
+            style: const TextStyle(color: _textoSuave, fontSize: 13),
+          ),
+          const SizedBox(height: 12),
+          _indicadorOuts(),
+        ],
+      ),
+    );
+  }
+
+  Widget _bloqueEquipo(String nombre, int carreras) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            nombre,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: _textoSuave, fontSize: 13),
+          ),
+          Text(
+            '$carreras',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 48,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _boton(String texto, IconData icono, Color color, VoidCallback onPressed) {
+    return ElevatedButton.icon(
+      onPressed: _ocupado ? null : onPressed,
+      icon: Icon(icono),
+      label: Text(
+        texto,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        foregroundColor: Colors.white,
+        disabledBackgroundColor: const Color(0xFF2A303A),
+        minimumSize: const Size.fromHeight(56),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
+  }
+
+  Widget _cuerpo() {
+    final db = DatabaseHelper.instance;
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _tarjetaMarcador(),
+        const SizedBox(height: 12),
+        _linescore(),
+        const SizedBox(height: 16),
+        _boton(
+          'TURNO AL BATE',
+          Icons.sports_baseball,
+          const Color(0xFF0A8FA0),
+          () async {
+            await Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => TurnoScreen(juegoId: widget.juegoId),
+              ),
+            );
+            if (!mounted) return;
+            await _cargar();
+          },
+        ),
+        const SizedBox(height: 10),
+        _boton(
+          'CAMBIOS',
+          Icons.swap_horiz,
+          const Color(0xFF6B4FA0),
+          () async {
+            await Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => CambiosScreen(juegoId: widget.juegoId),
+              ),
+            );
+            if (!mounted) return;
+            await _cargar();
+          },
+        ),
+        const SizedBox(height: 10),
+        _boton(
+          '+ OUT',
+          Icons.back_hand,
+          _rojo,
+          () => _ejecutar(() => db.sumarOutVivo(widget.juegoId)),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _boton(
+                '+1 CARRERA',
+                Icons.add,
+                const Color(0xFF2E8B57),
+                () => _ejecutar(() => db.sumarCarreraVivo(widget.juegoId)),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _boton(
+                '-1 CARRERA',
+                Icons.remove,
+                const Color(0xFF8A5A00),
+                () => _ejecutar(() => db.sumarCarreraVivo(widget.juegoId, delta: -1)),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        _boton('DESHACER', Icons.undo, const Color(0xFF3A4252), _deshacer),
+        const SizedBox(height: 16),
+        const Text(
+          'Todo se guarda al instante. Si sales de esta pantalla, vuelve a entrar por "Juego en vivo" para continuar.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: _textoSuave, fontSize: 12),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: _fondo,
+      appBar: AppBar(
+        backgroundColor: _fondo,
+        foregroundColor: Colors.white,
+        title: const Text('JUEGO EN VIVO'),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (v) {
+              if (v == 'terminar') _terminar();
+              if (v == 'descartar') _descartar();
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'terminar', child: Text('Terminar juego')),
+              PopupMenuItem(value: 'descartar', child: Text('Descartar juego')),
+            ],
+          ),
+        ],
+      ),
+      body: (_cargando || _juego == null)
+          ? const Center(child: CircularProgressIndicator())
+          : _cuerpo(),
+    );
+  }
+}

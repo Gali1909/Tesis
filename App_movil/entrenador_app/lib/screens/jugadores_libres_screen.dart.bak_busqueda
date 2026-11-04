@@ -1,0 +1,111 @@
+﻿import 'package:flutter/material.dart';
+import '../models/jugador.dart';
+import '../services/database_helper.dart';
+import 'perfil_jugador_screen.dart';
+
+class JugadoresLibresScreen extends StatefulWidget {
+  final int equipoId;
+  final String nombreEquipo;
+
+  const JugadoresLibresScreen({
+    super.key,
+    required this.equipoId,
+    required this.nombreEquipo,
+  });
+
+  @override
+  State<JugadoresLibresScreen> createState() => _JugadoresLibresScreenState();
+}
+
+class _JugadoresLibresScreenState extends State<JugadoresLibresScreen> {
+  List<Jugador> _libres = [];
+  bool _cargando = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargar();
+  }
+
+  Future<void> _cargar() async {
+    final libres = await DatabaseHelper.instance.obtenerJugadoresLibres();
+    if (!mounted) return;
+    setState(() {
+      _libres = libres;
+      _cargando = false;
+    });
+  }
+
+  Future<void> _fichar(Jugador jugador) async {
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Fichar jugador'),
+        content: Text('Fichar a ${jugador.nombre} en ${widget.nombreEquipo}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Fichar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmado != true) return;
+    await DatabaseHelper.instance.asignarJugadorAEquipo(
+      jugadorId: jugador.jugadorId!,
+      equipoId: widget.equipoId,
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${jugador.nombre} ahora es de ${widget.nombreEquipo}')),
+    );
+    _cargar();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Jugadores libres')),
+      body: _cargando
+          ? const Center(child: CircularProgressIndicator())
+          : _libres.isEmpty
+              ? const Center(child: Text('No hay jugadores libres'))
+              : ListView.builder(
+                  itemCount: _libres.length,
+                  itemBuilder: (context, index) {
+                    final j = _libres[index];
+                    return ListTile(
+          onTap: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PerfilJugadorScreen(jugador: j),
+              ),
+            );
+            if (!mounted) return;
+            _cargar();
+          },
+                      leading: Icon(
+                        j.rol == 'lanzador'
+                            ? Icons.sports_baseball
+                            : Icons.sports_cricket,
+                      ),
+                      title: Text(j.nombre),
+                      subtitle: Text(
+                        (j.rol == 'lanzador' ? 'Lanzador' : 'Bateador') +
+                            (j.numero != null ? ' - #${j.numero}' : ''),
+                      ),
+                      trailing: TextButton(
+                        onPressed: () => _fichar(j),
+                        child: const Text('Fichar'),
+                      ),
+                    );
+                  },
+                ),
+    );
+  }
+}

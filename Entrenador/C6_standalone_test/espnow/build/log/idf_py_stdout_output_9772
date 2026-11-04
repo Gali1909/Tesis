@@ -1,0 +1,455 @@
+[0;32mI (103) esp_image: segment 1: paddr=0002bde8 vaddr=40800000 sizeESP-ROM:esp32c6-20220919[0m
+Build:Sep 19 2022
+rst:0x15 (USB_UART_HPSYS),boot:0xc (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4080639c
+SPIWP:0xee
+mode:DIO, clock div:2
+load:0x40875720,len:0x16d0
+load:0x4086c110,len:0xee8
+load:0x4086e610,len:0x3068
+entry 0x4086c11a
+[0;32mI (23) boot: ESP-IDF v5.4.4 2nd stage bootloader[0m
+[0;32mI (23) boot: compile time Aug 25 2026 21:53:11[0m
+[0;32mI (24) boot: chip revision: v0.2[0m
+[0;32mI (24) boot: efuse block revision: v0.3[0m
+[0;32mI (26) boot.esp32c6: SPI Speed      : 80MHz[0m
+[0;32mI (30) boot.esp32c6: SPI Mode       : DIO[0m
+[0;32mI (34) boot.esp32c6: SPI Flash Size : 2MB[0m
+[0;32mI (38) boot: Enabling RNG early entropy source...[0m
+[0;32mI (42) boot: Partition Table:[0m
+[0;32mI (45) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (51) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (58) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (64) boot:  2 factory          factory app      00 00 00010000 00100000[0m
+[0;32mI (71) boot: End of partition table[0m
+[0;32mI (74) esp_image: segment 0: paddr=00010020 vaddr=42090020 size=1bdc0h (114112) map[0m
+[0;32mI (103) esp_image: segment 1: paddr=0002bde8 vaddr=40800000 size=04230h ( 16944) load[0m
+[0;32mI (108) esp_image: segment 2: paddr=00030020 vaddr=42000020 size=8fdf4h (589300) map[0m
+[0;32mI (221) esp_image: segment 3: paddr=000bfe1c vaddr=40804230 size=15828h ( 88104) load[0m
+[0;32mI (241) esp_image: segment 4: paddr=000d564c vaddr=40819a60 size=037c8h ( 14280) load[0m
+[0;32mI (250) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (251) boot: Disabling RNG early entropy source...[0m
+[0;32mI (261) cpu_start: Unicore app[0m
+[0;32mI (269) cpu_start: GPIO 17 and 16 are used as console UART I/O pins[0m
+[0;32mI (270) cpu_start: Pro cpu start user code[0m
+[0;32mI (270) cpu_start: cpu freq: 160000000 Hz[0m
+[0;32mI (271) app_init: Application information:[0m
+[0;32mI (275) app_init: Project name:     espnow_example[0m
+[0;32mI (280) app_init: App version:      1[0m
+[0;32mI (283) app_init: Compile time:     Aug 25 2026 21:52:27[0m
+[0;32mI (288) app_init: ELF file SHA256:  243f96b14...[0m
+[0;32mI (293) app_init: ESP-IDF:          v5.4.4[0m
+[0;32mI (296) efuse_init: Min chip rev:     v0.0[0m
+[0;32mI (300) efuse_init: Max chip rev:     v0.99 [0m
+[0;32mI (304) efuse_init: Chip rev:         v0.2[0m
+[0;32mI (308) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (314) heap_init: At 40822650 len 00059FC0 (359 KiB): RAM[0m
+[0;32mI (319) heap_init: At 4087C610 len 00002F54 (11 KiB): RAM[0m
+[0;32mI (325) heap_init: At 50000000 len 00003FE8 (15 KiB): RTCRAM[0m
+[0;32mI (331) spi_flash: detected chip: generic[0m
+[0;32mI (334) spi_flash: flash io: dio[0m
+[0;33mW (337) spi_flash: Detected size(4096k) larger than the size in the binary image header(2048k). Using the size in the binary image header.[0m
+[0;32mI (349) sleep_gpio: Configure to isolate all GPIO pins in sleep state[0m
+[0;32mI (355) sleep_gpio: Enable automatic switching of GPIO sleep configuration[0m
+[0;32mI (370) main_task: Started on CPU0[0m
+[0;32mI (370) main_task: Calling app_main()[0m
+[0;32mI (380) pp: pp rom version: 5b8dcfa[0m
+[0;32mI (380) net80211: net80211 rom version: 5b8dcfa[0m
+[0;32mI (390) wifi:wifi driver task: 4082b034, prio:23, stack:6656, core=0[0m
+[0;32mI (390) wifi:wifi firmware version: 8896d66[0m
+[0;32mI (390) wifi:wifi certification version: v7.0[0m
+[0;32mI (390) wifi:config NVS flash: enabled[0m
+[0;32mI (400) wifi:config nano formatting: disabled[0m
+[0;32mI (400) wifi:mac_version:HAL_MAC_ESP32AX_761,ut_version:N, band mode:0x1[0m
+[0;32mI (410) wifi:Init data frame dynamic rx buffer num: 32[0m
+[0;32mI (410) wifi:Init static rx mgmt buffer num: 5[0m
+[0;32mI (420) wifi:Init management short buffer num: 32[0m
+[0;32mI (420) wifi:Init dynamic tx buffer num: 32[0m
+[0;32mI (420) wifi:Init static tx FG buffer num: 2[0m
+[0;32mI (430) wifi:Init static rx buffer size: 1700 (rxctrl:92, csi:512)[0m
+[0;32mI (430) wifi:Init static rx buffer num: 10[0m
+[0;32mI (440) wifi:Init dynamic rx buffer num: 32[0m
+Guru Meditation Error: Core  0 panic'ed (Store access fault). Exception was unhandled.
+
+Core  0 register dump:
+MEPC    : 0x42058322  RA      : 0x42058252  SP      : 0x4082aef0  GP      : 0x4081a264  
+TP      : 0x4082b020  T0      : 0x40028192  T1      : 0x4082aaec  T2      : 0x0008ee7a  
+S0/FP   : 0x4082d728  S1      : 0x4081b170  A0      : 0xf0003fff  A1      : 0xdeadbeef  
+A2      : 0x00000000  A3      : 0x00003fff  A4      : 0x81a906a4  A5      : 0x4082d6f8  
+A6      : 0xffffc000  A7      : 0x0000000a  S2      : 0x0000000a  S3      : 0x000006a8  
+S4      : 0x4081ee98  S5      : 0x00003fff  S6      : 0xf0003fff  S7      : 0x40880000  
+S8      : 0x0000000a  S9      : 0x000006a8  S10     : 0x0000000a  S11     : 0x4082d71c  
+T3      : 0x00000000  T4      : 0x0002023c  T5      : 0x000156d1  T6      : 0x0000ab51  
+MSTATUS : 0x00001881  MTVEC   : 0x40800001  MCAUSE  : 0x00000007  MTVAL   : 0x00000000  
+MHARTID : 0x00000000  
+
+warning: could not convert 'main' from the host encoding (CP1252) to UTF-32.
+This normally should not happen, please file a bug report.
+0x42058322 in wDev_Rxbuf_Init ()
+#0  0x42058322 in wDev_Rxbuf_Init ()
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
+
+
+
+ELF file SHA256: 243f96b14
+
+Rebooting...
+ESP-ROM:esp32c6-20220919
+Build:Sep 19 2022
+rst:0xc (SW_CPU),boot:0xc (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4001975a
+SPIWP:0xee
+mode:DIO, clock div:2
+load:0x40875720,len:0x16d0
+load:0x4086c110,len:0xee8
+load:0x4086e610,len:0x3068
+entry 0x4086c11a
+[0;32mI (22) boot: ESP-IDF v5.4.4 2nd stage bootloader[0m
+[0;32mI (22) boot: compile time Aug 25 2026 21:53:11[0m
+[0;32mI (23) boot: chip revision: v0.2[0m
+[0;32mI (24) boot: efuse block revision: v0.3[0m
+[0;32mI (25) boot.esp32c6: SPI Speed      : 80MHz[0m
+[0;32mI (29) boot.esp32c6: SPI Mode       : DIO[0m
+[0;32mI (33) boot.esp32c6: SPI Flash Size : 2MB[0m
+[0;32mI (37) boot: Enabling RNG early entropy source...[0m
+[0;32mI (41) boot: Partition Table:[0m
+[0;32mI (44) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (50) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (57) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (63) boot:  2 factory          factory app      00 00 00010000 00100000[0m
+[0;32mI (70) boot: End of partition table[0m
+[0;32mI (73) esp_image: segment 0: paddr=00010020 vaddr=42090020 size=1bdc0h (114112) map[0m
+[0;32mI (124) esp_image: segment 1: paddr=0002bde8 vaddr=40800000 size=04230h ( 16944) load[0m
+[0;32mI (132) esp_image: segment 2: paddr=00030020 vaddr=42000020 size=8fdf4h (589300) map[0m
+[0;32mI (355) esp_image: segment 3: paddr=000bfe1c vaddr=40804230 size=15828h ( 88104) load[0m
+[0;32mI (394) esp_image: segment 4: paddr=000d564c vaddr=40819a60 size=037c8h ( 14280) load[0m
+[0;32mI (413) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (414) boot: Disabling RNG early entropy source...[0m
+[0;32mI (424) cpu_start: Unicore app[0m
+[0;32mI (433) cpu_start: GPIO 17 and 16 are used as console UART I/O pins[0m
+[0;32mI (433) cpu_start: Pro cpu start user code[0m
+[0;32mI (433) cpu_start: cpu freq: 160000000 Hz[0m
+[0;32mI (435) app_init: Application information:[0m
+[0;32mI (439) app_init: Project name:     espnow_example[0m
+[0;32mI (443) app_init: App version:      1[0m
+[0;32mI (447) app_init: Compile time:     Aug 25 2026 21:52:27[0m
+[0;32mI (452) app_init: ELF file SHA256:  243f96b14...[0m
+[0;32mI (456) app_init: ESP-IDF:          v5.4.4[0m
+[0;32mI (460) efuse_init: Min chip rev:     v0.0[0m
+[0;32mI (464) efuse_init: Max chip rev:     v0.99 [0m
+[0;32mI (468) efuse_init: Chip rev:         v0.2[0m
+[0;32mI (471) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (478) heap_init: At 40822650 len 00059FC0 (359 KiB): RAM[0m
+[0;32mI (483) heap_init: At 4087C610 len 00002F54 (11 KiB): RAM[0m
+[0;32mI (488) heap_init: At 50000000 len 00003FE8 (15 KiB): RTCRAM[0m
+[0;32mI (494) spi_flash: detected chip: generic[0m
+[0;32mI (497) spi_flash: flash io: dio[0m
+[0;33mW (500) spi_flash: Detected size(4096k) larger than the size in the binary image header(2048k). Using the size in the binary image header.[0m
+[0;32mI (512) sleep_gpio: Configure to isolate all GPIO pins in sleep state[0m
+[0;32mI (519) sleep_gpio: Enable automatic switching of GPIO sleep configuration[0m
+[0;32mI (534) main_task: Started on CPU0[0m
+[0;32mI (534) main_task: Calling app_main()[0m
+[0;32mI (544) pp: pp rom version: 5b8dcfa[0m
+[0;32mI (544) net80211: net80211 rom version: 5b8dcfa[0m
+[0;32mI (554) wifi:wifi driver task: 4082b034, prio:23, stack:6656, core=0[0m
+[0;32mI (554) wifi:wifi firmware version: 8896d66[0m
+[0;32mI (554) wifi:wifi certification version: v7.0[0m
+[0;32mI (554) wifi:config NVS flash: enabled[0m
+[0;32mI (564) wifi:config nano formatting: disabled[0m
+[0;32mI (564) wifi:mac_version:HAL_MAC_ESP32AX_761,ut_version:N, band mode:0x1[0m
+[0;32mI (574) wifi:Init data frame dynamic rx buffer num: 32[0m
+[0;32mI (574) wifi:Init static rx mgmt buffer num: 5[0m
+[0;32mI (584) wifi:Init management short buffer num: 32[0m
+[0;32mI (584) wifi:Init dynamic tx buffer num: 32[0m
+[0;32mI (584) wifi:Init static tx FG buffer num: 2[0m
+[0;32mI (594) wifi:Init static rx buffer size: 1700 (rxctrl:92, csi:512)[0m
+[0;32mI (594) wifi:Init static rx buffer num: 10[0m
+[0;32mI (604) wifi:Init dynamic rx buffer num: 32[0m
+[0;32mI (604) wifi_init: rx ba win: 6[0m
+[0;32mI (604) wifi_init: accept mbox: 6[0m
+[0;32mI (614) wifi_init: tcpip mbox: 32[0m
+[0;32mI (614) wifi_init: udp mbox: 6[0m
+[0;32mI (614) wifi_init: tcp mbox: 6[0m
+[0;32mI (624) wifi_init: tcp tx win: 5760[0m
+[0;32mI (624) wifi_init: tcp rx win: 5760[0m
+[0;32mI (624) wifi_init: tcp mss: 1440[0m
+[0;32mI (634) wifi_init: WiFi IRAM OP enabled[0m
+[0;32mI (634) wifi_init: WiFi RX IRAM OP enabled[0m
+[0;32mI (634) wifi_init: WiFi SLP IRAM OP enabled[0m
+[0;32mI (644) phy_init: phy_version 343,b513b46,Nov 14 2025,16:34:12[0m
+[0;33mW (684) wifi:ACK_TAB0   :0x   90a0b, QAM16:0x9 (24Mbps), QPSK:0xa (12Mbps), BPSK:0xb (6Mbps)[0m
+[0;33mW (684) wifi:CTS_TAB0   :0x   90a0b, QAM16:0x9 (24Mbps), QPSK:0xa (12Mbps), BPSK:0xb (6Mbps)[0m
+[0;33mW (694) wifi:(agc)0x600a7128:0xd21c19da, min.avgNF:0xce->0xd2(dB), RCalCount:0x1c1, min.RRssi:0x9da(-98.38)[0m
+[0;32mI (704) wifi:11ax coex: WDEVAX_PTI0(0x55777555), WDEVAX_PTI1(0x00003377).[0m
+
+[0;32mI (704) wifi:mode : sta (58:e6:c5:d3:98:e4)[0m
+[0;32mI (714) wifi:enable tsf[0m
+[0;32mI (714) ESPNOW: espnow [version: 2.0] init[0m
+[0;32mI (714) main_task: Returned from app_main()[0m
+[0;32mI (5714) espnow_example: Start sending broadcast data[0m
+[0;32mI (6714) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (7714) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (8714) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (9714) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (10774) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (11774) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (12814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (13814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (14814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (15814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (16814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (17814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (18814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (19814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (20814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (21814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (22814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (23814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (24814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (25814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (26814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (27814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (28814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (29814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (30814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (31814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (32814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (33814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (34814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (35814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (36814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (37814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (38814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (39814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (40814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (41814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (42814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (43814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (44814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (45814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (46814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (47814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (48814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (49814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (50814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (51814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (52814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (53814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (54814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (55814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (56814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (57814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (58814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (59814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (60814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (61814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (62814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (63814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (64814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (65814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (66814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (67814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (68814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (69814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (70814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (71814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (72814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (73814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (74814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (75814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (76814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (77814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (78814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (79814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (80814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (81814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (82814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (83814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (84814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (85814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (86814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (87814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (88814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (89814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (90814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (91814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (92814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (93814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (94814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (95814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (96814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (97814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (98814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (99814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (100814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (101814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (102814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (103814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (104814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (105814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (106814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (107814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (108814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (109814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (110814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (111814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (112814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (113814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (114814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (115814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (116814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (117814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (118814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (119814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (120814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (121814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (122814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (123814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (124814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (125814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (126814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (127814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (128814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (129814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (130814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (131814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (132814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (133814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (134814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (135814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (136814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (137814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (138814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (139814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (140814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (141814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (142814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (143814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (144814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (145814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (146814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (147814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (148814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (149814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (150814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (151814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (152814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (153814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (154814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (155814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (156814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (157814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (158814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (159814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (160814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (161814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (162814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (163814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (164814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (165814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (166814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (167814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (168814) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (475) wifi_init: tcp mss: 1440[0m
+[0;32mI (475) wifi_init: WiFi IRAM OP enabled[0m
+[0;32mI (475) wifi_init: WiFi RX IRAM OP enabled[0m
+[0;32mI (485) wifi_init: WiFi SLP IRAM OP enabled[0m
+[0;32mI (485) phy_init: phy_version 343,b513b46,Nov 14 2025,16:34:12[0m
+[0;32mI (535) phy_init: Saving new calibration data due to checksum failure or outdated calibration data, mode(0)[0m
+[0;33mW (545) wifi:ACK_TAB0   :0x   90a0b, QAM16:0x9 (24Mbps), QPSK:0xa (12Mbps), BPSK:0xb (6Mbps)[0m
+[0;33mW (545) wifi:CTS_TAB0   :0x   90a0b, QAM16:0x9 (24Mbps), QPSK:0xa (12Mbps), BPSK:0xb (6Mbps)[0m
+[0;33mW (555) wifi:(agc)0x600a7128:0xd21a69ea, min.avgNF:0xce->0xd2(dB), RCalCount:0x1a6, min.RRssi:0x9ea(-97.38)[0m
+[0;32mI (565) wifi:11ax coex: WDEVAX_PTI0(0x55777555), WDEVAX_PTI1(0x00003377).[0m
+
+[0;32mI (565) wifi:mode : sta (58:e6:c5:d3:98:e4)[0m
+[0;32mI (575) wifi:enable tsf[0m
+[0;32mI (575) ESPNOW: espnow [version: 2.0] init[0m
+[0;32mI (575) main_task: Returned from app_main()[0m
+[0;32mI (5575) espnow_example: Start sending broadcast data[0m
+[0;32mI (6575) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (7685) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (8685) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (9705) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (10705) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (11715) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (12715) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (13745) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (14755) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (5565) espnow_example: Start sending broadcast data[0m
+[0;32mI (6565) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (7565) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (8565) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (9565) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (10565) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (11565) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (12565) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (13565) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (14565) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (5565) espnow_example: Start sending broadcast data[0m
+[0;32mI (6565) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (7565) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (8565) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (9625) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (10625) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (11625) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (12625) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (13625) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (14655) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (15655) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (16655) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (17655) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (18655) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (19715) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (20715) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (21715) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (22715) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (23715) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (24725) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (25725) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (26725) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (27725) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (28725) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (29725) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (30725) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (31725) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (32745) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (33745) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (34745) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (35745) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (36745) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (37745) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (38745) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (39755) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (40755) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (41755) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (42755) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (43755) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (44775) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (45775) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (46775) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (47775) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (48775) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (49775) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (50775) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (51775) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (52785) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (53785) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (54785) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (55785) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (56785) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (57785) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (58785) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (59785) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (60785) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (61785) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (62785) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (63785) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (64785) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (65785) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (66785) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (67785) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (68785) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (69785) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (70785) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (71785) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m
+[0;32mI (72785) espnow_example: send data to ff:ff:ff:ff:ff:ff[0m

@@ -1,0 +1,13 @@
+ui_Menu_principal.c
+ui_Perfil_Bat.c
+ui.c
+ui_comp_hook.c
+ui_helpers.c
+ui_events.c
+ui_img_icono_campo_beisbol_v4_fondo_png.c
+ui_img_icono_pelota_beisbol_fondo_png.c
+ui_img_icono_portapapeles_fondo_png.c
+ui_img_lanzador2_fondo_1f2937_png.c
+ui_img_bateador_fondo_1f2937_v3_png.c
+ui_img_analitica_icono_e6f1fb_png.c
+ui_img_icono_configuracion_v2_png.c

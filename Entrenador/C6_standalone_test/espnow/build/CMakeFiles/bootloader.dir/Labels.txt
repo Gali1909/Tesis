@@ -1,0 +1,13 @@
+# Target labels
+ bootloader
+# Source files and their labels
+C:/Tesis/Entrenador/C6_standalone_test/espnow/build/CMakeFiles/bootloader
+C:/Tesis/Entrenador/C6_standalone_test/espnow/build/CMakeFiles/bootloader.rule
+C:/Tesis/Entrenador/C6_standalone_test/espnow/build/CMakeFiles/bootloader-complete.rule
+C:/Tesis/Entrenador/C6_standalone_test/espnow/build/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule
+C:/Tesis/Entrenador/C6_standalone_test/espnow/build/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule
+C:/Tesis/Entrenador/C6_standalone_test/espnow/build/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule
+C:/Tesis/Entrenador/C6_standalone_test/espnow/build/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule
+C:/Tesis/Entrenador/C6_standalone_test/espnow/build/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule
+C:/Tesis/Entrenador/C6_standalone_test/espnow/build/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule
+C:/Tesis/Entrenador/C6_standalone_test/espnow/build/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule

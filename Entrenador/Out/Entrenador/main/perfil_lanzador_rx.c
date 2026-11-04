@@ -1,0 +1,141 @@
+// perfil_lanzador_rx.c
+#include <string.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_log.h"
+#include "ui.h"
+#include "uart_bridge.h"
+#include "perfil_lanzador_ui.h"
+#include "perfil_lanzador_rx.h"
+#include "perfil_vistas.h"
+
+static const char *TAG = "PERFIL_RX";
+
+/* Trama 0x15 (payload, enteros de 16 bits little-endian):
+ *  [0] numero  [1] mano (0=der,1=izq)  [2] edad
+ *  [3..16]  g, p, j, a, sv, so, bb          (7 x uint16)
+ *  [17..22] pcl*100, whip*100, il*10        (3 x uint16)
+ *  [23] n_lanz (0..5)
+ *  [24..38] 5 x { slot del catalogo de la app, vmin, vmax }
+ *  [39] largo del nombre (<= 24)
+ *  [40..] nombre UTF-8 (sin '\0')
+ */
+#define PERFIL_HDR_LEN 40
+
+static portMUX_TYPE s_mux = portMUX_INITIALIZER_UNLOCKED;
+static perfil_lanzador_t s_perfil;        /* ultimo perfil recibido */
+static bool s_hay = false;                /* hay perfil cargado */
+static bool s_dirty = false;              /* cambio pendiente de aplicar a la UI */
+
+static bool s_estaba_en_pantalla = false; /* solo tarea LVGL */
+static bool s_seleccionado = false;       /* solo tarea LVGL */
+
+static uint16_t u16(const uint8_t *p) { return (uint16_t)(p[0] | (p[1] << 8)); }
+
+/* ---------------- Lado UART (otra tarea) ---------------- */
+void perfil_lanzador_rx_on_frame(uint8_t tipo, const uint8_t *p, uint8_t len)
+{
+    if (tipo == UART_MSG_PERFIL_VISTA) { perfil_vistas_on_frame(p, len); return; }
+    if (tipo == UART_MSG_PERFIL_TIPOS) { perfil_tipos_on_frame(p, len); return; }
+    if (tipo == UART_MSG_QUITAR_PERFIL) {
+        perfil_vistas_borrar();
+        taskENTER_CRITICAL(&s_mux);
+        s_hay = false;
+        s_dirty = true;
+        taskEXIT_CRITICAL(&s_mux);
+        return;
+    }
+    if (tipo != UART_MSG_PERFIL_DATOS) return;
+
+    if (len < PERFIL_HDR_LEN || p[39] > len - PERFIL_HDR_LEN) {
+        ESP_LOGW(TAG, "Perfil 0x15 invalido (len=%d)", len);
+        return;
+    }
+
+    perfil_lanzador_t t;
+    memset(&t, 0, sizeof(t));
+    t.numero = p[0];
+    t.mano   = p[1];
+    t.edad   = p[2];
+    t.g = u16(p + 3);  t.p = u16(p + 5);  t.j = u16(p + 7);  t.a = u16(p + 9);
+    t.sv = u16(p + 11); t.so = u16(p + 13); t.bb = u16(p + 15);
+    t.pcl_x100 = u16(p + 17); t.whip_x100 = u16(p + 19); t.il_x10 = u16(p + 21);
+    t.n_lanz = p[23] > PERFIL_MAX_LANZ ? PERFIL_MAX_LANZ : p[23];
+    for (int i = 0; i < PERFIL_MAX_LANZ; i++) {
+        t.lanz[i].tipo = p[24 + i * 3];
+        t.lanz[i].vmin = p[25 + i * 3];
+        t.lanz[i].vmax = p[26 + i * 3];
+    }
+    uint8_t nl = p[39];
+    if (nl > sizeof(t.nombre) - 1) nl = sizeof(t.nombre) - 1;
+    memcpy(t.nombre, p + PERFIL_HDR_LEN, nl);
+    t.nombre[nl] = '\0';
+
+    taskENTER_CRITICAL(&s_mux);
+    s_perfil = t;
+    s_hay = true;
+    s_dirty = true;
+    taskEXIT_CRITICAL(&s_mux);
+    ESP_LOGI(TAG, "Perfil recibido: %s #%u", t.nombre, t.numero);
+}
+
+/* ---------------- Lado LVGL (tarea de LVGL) ---------------- */
+static void copiar_estado(bool *hay, bool *dirty, perfil_lanzador_t *out)
+{
+    taskENTER_CRITICAL(&s_mux);
+    *hay = s_hay;
+    if (dirty) { *dirty = s_dirty; s_dirty = false; }
+    if (out) *out = s_perfil;
+    taskEXIT_CRITICAL(&s_mux);
+}
+
+static void click_lanzador_cb(lv_event_t *e)
+{
+    (void)e;
+    bool hay;
+    perfil_lanzador_t p;
+    copiar_estado(&hay, NULL, &p);
+    if (!hay) return;
+    s_seleccionado = true;
+    perfil_lanzador_ui_mostrar(&p);
+}
+
+static void tick_cb(lv_timer_t *t)
+{
+    (void)t;
+    lv_obj_t *act = lv_screen_active();
+    bool aqui = (act != NULL) &&
+                ((ui_Perfil_lanzadores_es != NULL && act == ui_Perfil_lanzadores_es) ||
+                 (ui_Perfil_lanzadores_EN != NULL && act == ui_Perfil_lanzadores_EN));
+    if (!aqui) { s_estaba_en_pantalla = false; return; }
+
+    perfil_vistas_ui_tick();
+    bool hay, dirty;
+    perfil_lanzador_t p;
+    copiar_estado(&hay, &dirty, &p);
+
+    if (!s_estaba_en_pantalla) {
+        /* Recien entramos a la pantalla: ningun lanzador seleccionado. */
+        s_estaba_en_pantalla = true;
+        s_seleccionado = false;
+        perfil_lanzador_ui_reset();
+        perfil_lanzador_ui_lista(hay, p.nombre);
+        perfil_lanzador_ui_set_click_cb(click_lanzador_cb);
+        return;
+    }
+
+    if (dirty) {
+        perfil_lanzador_ui_lista(hay, p.nombre);
+        if (!hay) { s_seleccionado = false; perfil_lanzador_ui_reset(); }
+        else if (s_seleccionado) perfil_lanzador_ui_mostrar(&p);
+    }
+}
+
+void perfil_lanzador_rx_init(void)
+{
+    static bool s_iniciado = false;   /* seguro si se llama mas de una vez */
+    if (s_iniciado) return;
+    s_iniciado = true;
+    uart_bridge_set_perfil_callback(perfil_lanzador_rx_on_frame);
+    lv_timer_create(tick_cb, 200, NULL);
+}

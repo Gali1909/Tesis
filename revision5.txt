@@ -1,0 +1,116 @@
+﻿
+  lib\screens\enviar_pantalla_screen.dart:87:        PantallaProtocolo.tTipos,
+  lib\screens\enviar_pantalla_screen.dart:88:        await PantallaProtocolo.payloadTipos(),
+  lib\screens\enviar_pantalla_screen.dart:89:      );
+  lib\screens\enviar_pantalla_screen.dart:90:      if (t != 0) {
+  lib\screens\enviar_pantalla_screen.dart:91:        res = 'Fallo al enviar los tipos (codigo $t)';
+  lib\screens\enviar_pantalla_screen.dart:92:      } else {
+  lib\screens\enviar_pantalla_screen.dart:93:        final r = await _ble.enviar(
+  lib\screens\enviar_pantalla_screen.dart:94:          PantallaProtocolo.tPerfilLanzador,
+  lib\screens\enviar_pantalla_screen.dart:95:          await PantallaProtocolo.payloadPerfilLanzador(id),
+  lib\screens\enviar_pantalla_screen.dart:96:        );
+  lib\screens\enviar_pantalla_screen.dart:97:        if (r == 0) {
+  lib\screens\enviar_pantalla_screen.dart:98:          final d = await _ble.enviar(
+> lib\screens\enviar_pantalla_screen.dart:99:            PantallaProtocolo.tPerfilDatos,
+> lib\screens\enviar_pantalla_screen.dart:100:            await PantallaProtocolo.payloadPerfilDatos(id),
+  lib\screens\enviar_pantalla_screen.dart:101:          );
+  lib\screens\enviar_pantalla_screen.dart:102:          res = d == 0
+  lib\screens\enviar_pantalla_screen.dart:103:              ? 'Perfil enviado y confirmado por la pantalla'
+  lib\screens\enviar_pantalla_screen.dart:104:              : d == -1
+  lib\screens\enviar_pantalla_screen.dart:105:                  ? 'La pantalla no respondio a los datos del perfil'
+  lib\screens\enviar_pantalla_screen.dart:106:                  : 'La pantalla rechazo los datos del perfil (codigo 
+$d)';
+  lib\screens\enviar_pantalla_screen.dart:107:        } else {
+  lib\screens\enviar_pantalla_screen.dart:108:          res = r == -1
+  lib\screens\enviar_pantalla_screen.dart:109:              ? 'La pantalla no respondio (sin confirmacion)'
+  lib\screens\enviar_pantalla_screen.dart:110:              : 'La pantalla rechazo el perfil (codigo $r)';
+  lib\screens\enviar_pantalla_screen.dart:111:        }
+  lib\screens\enviar_pantalla_screen.dart:112:      }
+  lib\services\pantalla_protocolo.dart:8:/// Protocolo app -> pantalla del coach (via BLE).
+  lib\services\pantalla_protocolo.dart:9:///
+  lib\services\pantalla_protocolo.dart:10:/// Trama: 0xAA 0x55 | tipo | seq | largo(2, little endian) | payload | xor
+  lib\services\pantalla_protocolo.dart:11:/// El xor es el de tipo, seq, largo y payload. El payload es texto UTF-8:
+  lib\services\pantalla_protocolo.dart:12:/// lineas separadas por \n y campos separados por |.
+  lib\services\pantalla_protocolo.dart:13:class PantallaProtocolo {
+  lib\services\pantalla_protocolo.dart:14:  static const int tHello = 0x01;
+  lib\services\pantalla_protocolo.dart:15:  static const int tTipos = 0x10;
+  lib\services\pantalla_protocolo.dart:16:  static const int tJugadas = 0x11;
+  lib\services\pantalla_protocolo.dart:17:  static const int tLineup = 0x12;
+  lib\services\pantalla_protocolo.dart:18:  static const int tPerfilLanzador = 0x13;
+  lib\services\pantalla_protocolo.dart:19:  static const int tQuitarPerfil = 0x14;
+> lib\services\pantalla_protocolo.dart:20:  static const int tPerfilDatos = 0x15;
+  lib\services\pantalla_protocolo.dart:21:  static const int tPerfilVista = 0x16;
+  lib\services\pantalla_protocolo.dart:22:  static const int tAck = 0x20;
+  lib\services\pantalla_protocolo.dart:23:  static const int version = 1;
+  lib\services\pantalla_protocolo.dart:24:  static const int maxPayload = 2048;
+  lib\services\pantalla_protocolo.dart:25:
+  lib\services\pantalla_protocolo.dart:26:  static Uint8List armar(int tipo, int seq, List<int> payload) {
+  lib\services\pantalla_protocolo.dart:27:    final len = payload.length;
+  lib\services\pantalla_protocolo.dart:28:    final b = BytesBuilder();
+  lib\services\pantalla_protocolo.dart:29:    b.add([0xAA, 0x55, tipo, seq & 0xFF, len & 0xFF, (len >> 8) & 0xFF]);
+  lib\services\pantalla_protocolo.dart:30:    b.add(payload);
+  lib\services\pantalla_protocolo.dart:31:    var x = tipo ^ (seq & 0xFF) ^ (len & 0xFF) ^ ((len >> 8) & 0xFF);
+  lib\services\pantalla_protocolo.dart:32:    for (final p in payload) {
+  lib\services\pantalla_protocolo.dart:93:  }
+  lib\services\pantalla_protocolo.dart:94:
+  lib\services\pantalla_protocolo.dart:95:  /// Datos completos del perfil para la pantalla (trama 0x15, binaria).
+  lib\services\pantalla_protocolo.dart:96:  /// Enteros de 16 bits en little-endian. Ver perfil_lanzador_rx.c en la 
+P4.
+  lib\services\pantalla_protocolo.dart:97:  ///  [0] numero  [1] mano (0 derecho, 1 zurdo)  [2] edad (0 = no se 
+guarda)
+  lib\services\pantalla_protocolo.dart:98:  ///  [3..16] G, P, J, A, SV, SO, BB   [17..22] PCL*100, WHIP*100, IL*10
+  lib\services\pantalla_protocolo.dart:99:  ///  [23] cantidad de tipos (0..5)  [24..38] 5 x (slot, vel, vel)
+  lib\services\pantalla_protocolo.dart:100:  ///  [39] largo del nombre (max 24)  [40..] nombre UTF-8
+  lib\services\pantalla_protocolo.dart:101:  /// Las estadisticas son las de la temporada que muestra el perfil en la 
+app
+  lib\services\pantalla_protocolo.dart:102:  /// (base manual + salidas registradas, obtenerLanzadorPerfilTotal). Si 
+no se
+  lib\services\pantalla_protocolo.dart:103:  /// indica temporada se usa la mas reciente. La velocidad es la promedio 
+de
+  lib\services\pantalla_protocolo.dart:104:  /// cada tipo.
+> lib\services\pantalla_protocolo.dart:105:  static Future<List<int>> payloadPerfilDatos(int lanzadorId, {int? 
+temporada}) async {
+  lib\services\pantalla_protocolo.dart:106:    final dbh = DatabaseHelper.instance;
+  lib\services\pantalla_protocolo.dart:107:    final db = await dbh.database;
+  lib\services\pantalla_protocolo.dart:108:    final j = await db.rawQuery(
+  lib\services\pantalla_protocolo.dart:109:      'SELECT nombre, numero, mano_lanzamiento FROM jugador WHERE 
+jugador_id = ?',
+  lib\services\pantalla_protocolo.dart:110:      [lanzadorId],
+  lib\services\pantalla_protocolo.dart:111:    );
+  lib\services\pantalla_protocolo.dart:112:    if (j.isEmpty) throw StateError('El lanzador ya no existe.');
+  lib\services\pantalla_protocolo.dart:113:    final temps = await dbh.obtenerTemporadasLanzadorTotal(lanzadorId);
+  lib\services\pantalla_protocolo.dart:114:    final anio = temporada ?? (temps.isEmpty ? null : temps.first);
+  lib\services\pantalla_protocolo.dart:115:    final h = anio == null
+  lib\services\pantalla_protocolo.dart:116:        ? null
+  lib\services\pantalla_protocolo.dart:117:        : await dbh.obtenerLanzadorPerfilTotal(lanzadorId, anio);
+  lib\widgets\boton_enviar_perfil_pantalla.dart:78:        PantallaProtocolo.tTipos,
+  lib\widgets\boton_enviar_perfil_pantalla.dart:79:        await PantallaProtocolo.payloadTipos(),
+  lib\widgets\boton_enviar_perfil_pantalla.dart:80:      );
+  lib\widgets\boton_enviar_perfil_pantalla.dart:81:      if (t != 0) {
+  lib\widgets\boton_enviar_perfil_pantalla.dart:82:        res = 'Fallo al enviar los tipos (codigo $t)';
+  lib\widgets\boton_enviar_perfil_pantalla.dart:83:      } else {
+  lib\widgets\boton_enviar_perfil_pantalla.dart:84:        final r = await _ble.enviar(
+  lib\widgets\boton_enviar_perfil_pantalla.dart:85:          PantallaProtocolo.tPerfilLanzador,
+  lib\widgets\boton_enviar_perfil_pantalla.dart:86:          await 
+PantallaProtocolo.payloadPerfilLanzador(widget.lanzadorId),
+  lib\widgets\boton_enviar_perfil_pantalla.dart:87:        );
+  lib\widgets\boton_enviar_perfil_pantalla.dart:88:        if (r == 0) {
+  lib\widgets\boton_enviar_perfil_pantalla.dart:89:          final d = await _ble.enviar(
+> lib\widgets\boton_enviar_perfil_pantalla.dart:90:            PantallaProtocolo.tPerfilDatos,
+> lib\widgets\boton_enviar_perfil_pantalla.dart:91:            await PantallaProtocolo.payloadPerfilDatos(
+  lib\widgets\boton_enviar_perfil_pantalla.dart:92:              widget.lanzadorId,
+  lib\widgets\boton_enviar_perfil_pantalla.dart:93:              temporada: widget.temporada,
+  lib\widgets\boton_enviar_perfil_pantalla.dart:94:            ),
+  lib\widgets\boton_enviar_perfil_pantalla.dart:95:          );
+  lib\widgets\boton_enviar_perfil_pantalla.dart:96:          ok = d == 0;
+  lib\widgets\boton_enviar_perfil_pantalla.dart:97:          res = d == 0
+  lib\widgets\boton_enviar_perfil_pantalla.dart:98:              ? 'Perfil enviado y confirmado por la pantalla'
+  lib\widgets\boton_enviar_perfil_pantalla.dart:99:              : d == -1
+  lib\widgets\boton_enviar_perfil_pantalla.dart:100:                  ? 'La pantalla no respondio a los datos del 
+perfil'
+  lib\widgets\boton_enviar_perfil_pantalla.dart:101:                  : 'La pantalla rechazo los datos del perfil 
+(codigo $d)';
+  lib\widgets\boton_enviar_perfil_pantalla.dart:102:        } else {
+  lib\widgets\boton_enviar_perfil_pantalla.dart:103:          res = r == -1
+
+

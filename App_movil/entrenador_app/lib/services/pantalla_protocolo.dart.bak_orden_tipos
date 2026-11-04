@@ -1,0 +1,139 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'database_helper.dart';
+
+/// Protocolo app -> pantalla del coach (via BLE).
+///
+/// Trama: 0xAA 0x55 | tipo | seq | largo(2, little endian) | payload | xor
+/// El xor es el de tipo, seq, largo y payload. El payload es texto UTF-8:
+/// lineas separadas por \n y campos separados por |.
+class PantallaProtocolo {
+  static const int tHello = 0x01;
+  static const int tTipos = 0x10;
+  static const int tJugadas = 0x11;
+  static const int tLineup = 0x12;
+  static const int tPerfilLanzador = 0x13;
+  static const int tQuitarPerfil = 0x14;
+  static const int tAck = 0x20;
+  static const int version = 1;
+  static const int maxPayload = 2048;
+
+  static Uint8List armar(int tipo, int seq, List<int> payload) {
+    final len = payload.length;
+    final b = BytesBuilder();
+    b.add([0xAA, 0x55, tipo, seq & 0xFF, len & 0xFF, (len >> 8) & 0xFF]);
+    b.add(payload);
+    var x = tipo ^ (seq & 0xFF) ^ (len & 0xFF) ^ ((len >> 8) & 0xFF);
+    for (final p in payload) {
+      x ^= p;
+    }
+    b.addByte(x & 0xFF);
+    return b.toBytes();
+  }
+
+  static String _limpio(Object? s) =>
+      (s ?? '').toString().replaceAll(RegExp(r'[|\r\n]'), ' ').trim();
+
+  static List<int> _codificar(String texto) {
+    final bytes = utf8.encode(texto);
+    if (bytes.length > maxPayload) {
+      throw StateError(
+        'El mensaje pesa ${bytes.length} bytes y el maximo es $maxPayload.',
+      );
+    }
+    return bytes;
+  }
+
+  static List<int> payloadHello() => _codificar('v$version');
+
+  /// Perfil de lanzador: nombre, numero, cantidad de tipos disponibles y la
+  /// lista de slots disponibles separados por coma. El slot es la posicion
+  /// del tipo en la lista que entrega payloadTipos.
+  static Future<List<int>> payloadPerfilLanzador(int lanzadorId) async {
+    final db = await DatabaseHelper.instance.database;
+    final j = await db.rawQuery(
+      'SELECT nombre, numero FROM jugador WHERE jugador_id = ?',
+      [lanzadorId],
+    );
+    if (j.isEmpty) throw StateError('El lanzador ya no existe.');
+    final todos = await db.rawQuery(
+      'SELECT tipo_lanzamiento_id FROM tipo_lanzamiento ORDER BY tipo_lanzamiento_id',
+    );
+    final disp = await db.rawQuery(
+      'SELECT DISTINCT tipo_lanzamiento_id FROM lanzador_tipo_picheo WHERE lanzador_id = ?',
+      [lanzadorId],
+    );
+    final ids = disp.map((f) => f['tipo_lanzamiento_id']).toSet();
+    final slots = <int>[];
+    for (var i = 0; i < todos.length; i++) {
+      if (ids.contains(todos[i]['tipo_lanzamiento_id'])) slots.add(i);
+    }
+    if (slots.isEmpty) {
+      throw StateError('Este lanzador no tiene tipos de pitcheo registrados.');
+    }
+    return _codificar(
+      '${_limpio(j.first['nombre'])}\n${_limpio(j.first['numero'])}\n'
+      '${slots.length}\n${slots.join(',')}\n',
+    );
+  }
+
+  /// Tipos de lanzamiento: "n" y luego "slot|nombre". El slot es la posicion
+  /// en la lista (0, 1, 2...), en el orden del catalogo de la app.
+  static Future<List<int>> payloadTipos() async {
+    final db = await DatabaseHelper.instance.database;
+    final filas = await db.rawQuery(
+      'SELECT nombre FROM tipo_lanzamiento ORDER BY tipo_lanzamiento_id',
+    );
+    final sb = StringBuffer('${filas.length}\n');
+    for (var i = 0; i < filas.length; i++) {
+      sb.write('$i|${_limpio(filas[i]['nombre'])}\n');
+    }
+    return _codificar(sb.toString());
+  }
+
+  /// Jugadas estrategicas: "n" y luego "slot|nombre".
+  static Future<List<int>> payloadJugadas() async {
+    final db = await DatabaseHelper.instance.database;
+    final filas = await db.rawQuery(
+      'SELECT nombre FROM jugada_estrategica ORDER BY jugada_id',
+    );
+    final sb = StringBuffer('${filas.length}\n');
+    for (var i = 0; i < filas.length; i++) {
+      sb.write('$i|${_limpio(filas[i]['nombre'])}\n');
+    }
+    return _codificar(sb.toString());
+  }
+
+  /// Alineacion: nombre del lineup, "lanzador|numero", "n" y luego
+  /// "orden|numero|nombre|posicion" por cada puesto.
+  static Future<List<int>> payloadLineup(int lineupId) async {
+    final db = await DatabaseHelper.instance.database;
+    final cab = await db.rawQuery('''
+      SELECT l.nombre AS nombre, p.nombre AS lanzador, p.numero AS numero
+      FROM lineup l
+      LEFT JOIN jugador p ON p.jugador_id = l.lanzador_id
+      WHERE l.lineup_id = ?
+    ''', [lineupId]);
+    if (cab.isEmpty) throw StateError('El lineup ya no existe.');
+    final puestos = await db.rawQuery('''
+      SELECT lp.orden AS orden, j.numero AS numero, j.nombre AS nombre,
+             lp.posicion AS posicion
+      FROM lineup_puesto lp
+      JOIN jugador j ON j.jugador_id = lp.jugador_id
+      WHERE lp.lineup_id = ?
+      ORDER BY lp.orden
+    ''', [lineupId]);
+    final c = cab.first;
+    final sb = StringBuffer()
+      ..write('${_limpio(c['nombre'])}\n')
+      ..write('${_limpio(c['lanzador'])}|${_limpio(c['numero'])}\n')
+      ..write('${puestos.length}\n');
+    for (final p in puestos) {
+      sb.write(
+        '${p['orden']}|${_limpio(p['numero'])}|${_limpio(p['nombre'])}|${_limpio(p['posicion'])}\n',
+      );
+    }
+    return _codificar(sb.toString());
+  }
+}

@@ -1,0 +1,795 @@
+﻿import 'equipos_anteriores_card.dart';
+import 'dart:io';
+import 'package:flutter/material.dart';
+import '../models/jugador.dart';
+import '../models/equipo.dart';
+import '../models/bateador_perfil.dart';
+import '../models/jugador_posicion.dart';
+import '../services/database_helper.dart';
+import 'editar_bateador_screen.dart';
+import 'cargar_bateador_perfil_screen.dart';
+import 'cargar_vulnerabilidad_screen.dart';
+import 'registrar_juego_screen.dart';
+import 'historial_juegos_screen.dart';
+import '../models/bateo_evento.dart';
+
+const Color _colorFondoOscuro = Color(0xFF14171C);
+const Color _colorAcento = Color(0xFF0ABDCF);
+const Color _colorNaranja = Color(0xFFE36F10);
+const List<Color> _paletaLanzamientos = [
+  Color(0xFF0ABDCF),
+  Color(0xFFE36F10),
+  Color(0xFF4C6FFF),
+  Color(0xFF2ECC71),
+];
+
+class PerfilBateadorScreen extends StatefulWidget {
+  final Jugador jugador;
+
+  const PerfilBateadorScreen({super.key, required this.jugador});
+
+  @override
+  State<PerfilBateadorScreen> createState() => _PerfilBateadorScreenState();
+}
+
+class _PerfilBateadorScreenState extends State<PerfilBateadorScreen> {
+  late Jugador _jugadorActual;
+  Equipo? _equipo;
+  BateadorPerfil? _perfil;
+  List<int> _temporadasDisponibles = [];
+  int? _temporadaSeleccionada;
+  List<JugadorPosicion> _posiciones = [];
+  List<Map<String, dynamic>> _vulnerabilidades = [];
+  List<BateoEvento> _historialBateo = [];
+  bool _cargando = true;
+  bool _mostrarDetalles = false;
+  int _vistaJuegos = 0; // 0 = temporada, 5/10/15 = ultimos juegos
+  Map<String, dynamic>? _statsUltimos;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _jugadorActual = widget.jugador;
+    _cargarDatos();
+  }
+
+  Future<void> _cargarDatos() async {
+    final id = widget.jugador.jugadorId!;
+
+    try {
+      final equipo = widget.jugador.equipoId == null
+          ? null
+          : await DatabaseHelper.instance.obtenerEquipoPorId(widget.jugador.equipoId!);
+      final temporadas = await DatabaseHelper.instance.obtenerTemporadasBateadorTotal(id);
+      final temporada = (_temporadaSeleccionada != null && temporadas.contains(_temporadaSeleccionada))
+          ? _temporadaSeleccionada
+          : (temporadas.isNotEmpty ? temporadas.first : null);
+      final perfil = temporada == null
+          ? null
+          : await DatabaseHelper.instance.obtenerBateadorPerfilTotal(id, temporada: temporada);
+      final posiciones = await DatabaseHelper.instance.obtenerPosiciones(id);
+      final vulnerabilidades = await DatabaseHelper.instance.obtenerVulnerabilidadesDetalle(id);
+      final historial = await DatabaseHelper.instance.obtenerHistorialBateo(id);
+      final ultimos = _vistaJuegos == 0
+          ? null
+          : await DatabaseHelper.instance.ultimosJuegosBateador(id, _vistaJuegos);
+
+      if (!mounted) return;
+      setState(() {
+        _equipo = equipo;
+        _perfil = perfil;
+        _temporadasDisponibles = temporadas;
+        _temporadaSeleccionada = temporada;
+        _posiciones = posiciones;
+        _vulnerabilidades = vulnerabilidades;
+        _historialBateo = historial;
+        _statsUltimos = ultimos;
+        _error = null;
+        _cargando = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _cargando = false;
+      });
+    }
+  }
+
+  Future<void> _abrirEditarPerfil() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditarBateadorScreen(jugador: _jugadorActual),
+      ),
+    );
+    final actualizado = await DatabaseHelper.instance.obtenerJugadorPorId(widget.jugador.jugadorId!);
+    if (actualizado != null && mounted) {
+      setState(() => _jugadorActual = actualizado);
+    }
+    await _cargarDatos();
+  }
+
+  Future<void> _abrirEditarEstadisticas() async {
+    final id = widget.jugador.jugadorId!;
+    final guardada = await Navigator.push<int>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CargarBateadorPerfilScreen(
+          bateadorId: id,
+          temporadaInicial: _temporadaSeleccionada,
+        ),
+      ),
+    );
+    if (guardada != null) _temporadaSeleccionada = guardada;
+    await _cargarDatos();
+  }
+
+  Future<void> _abrirRegistrarJuego() async {
+    final registrado = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RegistrarJuegoScreen(
+          bateadorId: widget.jugador.jugadorId!,
+          nombreBateador: _jugadorActual.nombre,
+        ),
+      ),
+    );
+    if (registrado == true) await _cargarDatos();
+  }
+
+  Future<void> _abrirHistorial() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HistorialJuegosScreen(
+          bateadorId: widget.jugador.jugadorId!,
+          nombreBateador: _jugadorActual.nombre,
+        ),
+      ),
+    );
+    await _cargarDatos();
+  }
+
+  Future<void> _cambiarVista(int nueva) async {
+    if (nueva == _vistaJuegos) return;
+    final stats = nueva == 0
+        ? null
+        : await DatabaseHelper.instance.ultimosJuegosBateador(widget.jugador.jugadorId!, nueva);
+    if (!mounted) return;
+    setState(() {
+      _vistaJuegos = nueva;
+      _statsUltimos = stats;
+    });
+  }
+
+  Future<void> _abrirVulnerabilidad({Map<String, dynamic>? existente}) async {
+    final id = widget.jugador.jugadorId!;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CargarVulnerabilidadScreen(
+          bateadorId: id,
+          existente: existente,
+        ),
+      ),
+    );
+    await _cargarDatos();
+  }
+
+  String _formatoPromedio(double? valor) {
+    if (valor == null) return '--';
+    final texto = valor.toStringAsFixed(3);
+    return texto.startsWith('0') ? texto.substring(1) : texto;
+  }
+
+  String? _abreviaturaMano() {
+    final mano = _jugadorActual.manoBateo?.toLowerCase();
+    if (mano == 'derecha') return 'RHB';
+    if (mano == 'izquierda') return 'LHB';
+    if (mano == 'ambos') return 'SWITCH';
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF2F4F7),
+      appBar: AppBar(
+        backgroundColor: _colorFondoOscuro,
+        foregroundColor: Colors.white,
+        title: Text(_jugadorActual.nombre),
+      ),
+      body: _cargando
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text('Error cargando datos: $_error'),
+                  ),
+                )
+              : _vista(),
+    );
+  }
+
+  Widget _vista() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _tarjetaPerfil(),
+        const SizedBox(height: 16),
+        _botonesAccion(),
+        const SizedBox(height: 16),
+        _tarjetaVulnerabilidades(),
+        const SizedBox(height: 16),
+        _tarjetaHistorialBateo(),
+        EquiposAnterioresCard(jugadorId: widget.jugador.jugadorId!),
+        const SizedBox(height: 16),
+        _tarjetaProximamente(
+          'Rendimiento actual',
+          Icons.show_chart,
+          'Graficas de promedio y home runs por juego, cuando existan datos juego por juego.',
+        ),
+        if (_mostrarDetalles) ...[
+          const SizedBox(height: 20),
+          const Divider(),
+          const SizedBox(height: 8),
+          const Text('Estadisticas generales', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const SizedBox(height: 8),
+          _perfil == null
+              ? const Text('Sin estadisticas cargadas todavia')
+              : _tablaEstadisticas(_perfil!),
+          const SizedBox(height: 16),
+          const Text('Detalle de vulnerabilidades', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const SizedBox(height: 8),
+          _vulnerabilidades.isEmpty
+              ? const Text('Sin vulnerabilidades cargadas todavia')
+              : Column(children: _vulnerabilidades.map((v) => _filaVulnerabilidad(v)).toList()),
+        ],
+      ],
+    );
+  }
+
+  Widget _tarjetaPerfil() {
+    final posiciones = _posiciones.map((p) => p.posicion).toList();
+    final posicionPrincipal = posiciones.isNotEmpty ? posiciones.first : null;
+    final posicionesSecundarias = posiciones.length > 1 ? posiciones.skip(1).toList() : <String>[];
+    final fotoPath = _jugadorActual.foto;
+    final tieneFoto = fotoPath != null && fotoPath.isNotEmpty && File(fotoPath).existsSync();
+    final mano = _abreviaturaMano();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 32,
+                backgroundColor: _colorAcento.withValues(alpha: 0.15),
+                backgroundImage: tieneFoto ? FileImage(File(fotoPath)) : null,
+                child: tieneFoto ? null : const Icon(Icons.person, size: 32, color: _colorAcento),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _jugadorActual.nombre.toUpperCase(),
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _colorFondoOscuro),
+                    ),
+                    if (posicionPrincipal != null || mano != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Row(
+                          children: [
+                            if (posicionPrincipal != null)
+                              Text(
+                                posicionPrincipal,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: _colorNaranja,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            if (posicionPrincipal != null && mano != null) const SizedBox(width: 8),
+                            if (mano != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: _colorAcento.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  mano,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: _colorAcento,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    if (_equipo != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          _equipo!.nombre.toUpperCase(),
+                          style: const TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ),
+                    if (posicionesSecundarias.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Wrap(
+                          spacing: 6,
+                          children: posicionesSecundarias
+                              .map((s) => Chip(
+                                    label: Text(s, style: const TextStyle(fontSize: 10)),
+                                    padding: EdgeInsets.zero,
+                                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    visualDensity: VisualDensity.compact,
+                                  ))
+                              .toList(),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              if (_jugadorActual.numero != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Text.rich(
+                    TextSpan(
+                      children: [
+                        const TextSpan(
+                          text: '#',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _colorNaranja),
+                        ),
+                        TextSpan(
+                          text: _jugadorActual.numero.toString(),
+                          style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w800, color: _colorAcento),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _selectorTemporada(),
+          const SizedBox(height: 8),
+          _selectorVista(),
+          const SizedBox(height: 8),
+          _vistaJuegos == 0 ? _filaStatsPrincipales() : _filaStatsUltimos(),
+        ],
+      ),
+    );
+  }
+
+  Widget _selectorTemporada() {
+    if (_temporadasDisponibles.isEmpty) {
+      return const Text(
+        'Sin temporadas cargadas todavia',
+        style: TextStyle(color: Colors.black54, fontSize: 12),
+      );
+    }
+    return Row(
+      children: [
+        const Text('Temporada', style: TextStyle(color: Colors.black54, fontSize: 12)),
+        const SizedBox(width: 12),
+        DropdownButton<int>(
+          value: _temporadaSeleccionada,
+          style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+          iconEnabledColor: Colors.black54,
+          underline: const SizedBox.shrink(),
+          items: _temporadasDisponibles
+              .map((t) => DropdownMenuItem(value: t, child: Text(t.toString())))
+              .toList(),
+          onChanged: _cambiarTemporada,
+        ),
+      ],
+    );
+  }
+
+  Future<void> _cambiarTemporada(int? nueva) async {
+    if (nueva == null || nueva == _temporadaSeleccionada) return;
+    final perfil = await DatabaseHelper.instance.obtenerBateadorPerfilTotal(
+      widget.jugador.jugadorId!,
+      temporada: nueva,
+    );
+    if (!mounted) return;
+    setState(() {
+      _temporadaSeleccionada = nueva;
+      _perfil = perfil;
+    });
+  }
+
+  Widget _selectorVista() {
+    const opciones = [
+      [0, 'Temporada'],
+      [5, 'Ultimos 5'],
+      [10, 'Ultimos 10'],
+      [15, 'Ultimos 15'],
+    ];
+    return Wrap(
+      spacing: 8,
+      children: [
+        for (final o in opciones)
+          ChoiceChip(
+            label: Text(o[1] as String),
+            selected: _vistaJuegos == o[0],
+            selectedColor: _colorAcento,
+            labelStyle: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: _vistaJuegos == o[0] ? Colors.white : Colors.black87,
+            ),
+            onSelected: (_) => _cambiarVista(o[0] as int),
+          ),
+      ],
+    );
+  }
+
+  Widget _filaStatsUltimos() {
+    final s = _statsUltimos;
+    if (s == null || (s['juegos'] as int) == 0) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 12),
+        child: Text(
+          'Sin juegos registrados todavia. Usa REGISTRAR JUEGO.',
+          style: TextStyle(color: Colors.black54, fontSize: 12),
+        ),
+      );
+    }
+    final juegos = s['juegos'] as int;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          juegos < _vistaJuegos
+              ? 'Solo hay $juegos juego(s) registrado(s)'
+              : 'Ultimos $juegos juegos registrados',
+          style: const TextStyle(color: Colors.black54, fontSize: 12),
+        ),
+        const SizedBox(height: 4),
+        SizedBox(
+          height: 62,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _estadisticaCompacta('AVG', _formatoPromedio(s['avg'] as double)),
+                _estadisticaCompacta('SLG', _formatoPromedio(s['slg'] as double)),
+                _estadisticaCompacta('H', s['h'].toString()),
+                _estadisticaCompacta('2B', s['dobles'].toString()),
+                _estadisticaCompacta('3B', s['triples'].toString()),
+                _estadisticaCompacta('HR', s['hr'].toString()),
+                _estadisticaCompacta('RBI', s['ci'].toString()),
+                _estadisticaCompacta('R', s['ca'].toString()),
+                _estadisticaCompacta('BB', s['bb'].toString()),
+                _estadisticaCompacta('K', s['k'].toString()),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _filaStatsPrincipales() {
+    final p = _perfil;
+
+    return SizedBox(
+      height: 62,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _estadisticaCompacta('AVG', _formatoPromedio(p?.promedioBateo)),
+            _estadisticaCompacta('H', p?.hits.toString() ?? '--'),
+            _estadisticaCompacta('2B', p?.dobles.toString() ?? '--'),
+            _estadisticaCompacta('3B', p?.triples.toString() ?? '--'),
+            _estadisticaCompacta('HR', p?.homeRuns.toString() ?? '--'),
+            _estadisticaCompacta('RBI', p?.carrerasImpulsadas.toString() ?? '--'),
+            _estadisticaCompacta('R', p?.carrerasAnotadas.toString() ?? '--'),
+            _estadisticaCompacta('SB', p?.basesRobadas.toString() ?? '--'),
+            _estadisticaCompacta('TB', p?.totalBases.toString() ?? '--'),
+            _estadisticaCompacta('OBP', _formatoPromedio(p?.porcentajeEmbase)),
+            _estadisticaCompacta('OPS', _formatoPromedio(p?.ops)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _estadisticaCompacta(String etiqueta, String valor) {
+    return Container(
+      width: 62,
+      alignment: Alignment.center,
+      margin: const EdgeInsets.only(right: 14),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(etiqueta, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 4),
+          Text(valor, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _colorFondoOscuro)),
+        ],
+      ),
+    );
+  }
+
+  Widget _botonesAccion() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _colorFondoOscuro,
+                  side: const BorderSide(color: _colorFondoOscuro),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: _abrirEditarPerfil,
+                child: const Text('EDITAR PERFIL', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _colorFondoOscuro,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: _abrirEditarEstadisticas,
+                child: const Text('EDITAR ESTADISTICAS', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _colorAcento,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: _abrirRegistrarJuego,
+            icon: const Icon(Icons.add),
+            label: const Text('REGISTRAR JUEGO', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+          ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: _colorAcento,
+              side: const BorderSide(color: _colorAcento),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: _abrirHistorial,
+            icon: const Icon(Icons.history),
+            label: const Text('HISTORIAL DE JUEGOS', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+          ),
+        ),
+        TextButton(
+          onPressed: () => setState(() => _mostrarDetalles = !_mostrarDetalles),
+          child: Text(
+            _mostrarDetalles ? 'OCULTAR ESTADISTICAS COMPLETAS' : 'VER ESTADISTICAS COMPLETAS',
+            style: const TextStyle(color: _colorAcento, fontWeight: FontWeight.w600, fontSize: 12, letterSpacing: 0.3),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _tarjetaVulnerabilidades() {
+    return _tarjetaSeccion(
+      titulo: 'Vulnerabilidades',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Efectividad del bateador contra cada lanzamiento (menor = mas vulnerable)',
+            style: TextStyle(fontSize: 11, color: Colors.grey),
+          ),
+          const SizedBox(height: 12),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ..._vulnerabilidades.asMap().entries.map((entry) {
+                  final i = entry.key;
+                  final v = entry.value;
+                  final color = _paletaLanzamientos[i % _paletaLanzamientos.length];
+                  final nivel = (v['nivel_efectividad_contra'] as num?)?.toDouble();
+                  final nombre = v['nombre'] as String;
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => _abrirVulnerabilidad(existente: v),
+                    child: SizedBox(
+                      width: 92,
+                      child: Column(
+                        children: [
+                          CircleAvatar(
+                            radius: 22,
+                            backgroundColor: color.withValues(alpha: 0.15),
+                            child: Icon(Icons.sports_baseball, color: color, size: 20),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            nombre,
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                          ),
+                          Text(
+                            _formatoPromedio(nivel),
+                            style: const TextStyle(fontSize: 10, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+                InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () => _abrirVulnerabilidad(),
+                  child: const SizedBox(
+                    width: 92,
+                    child: Column(
+                      children: [
+                        CircleAvatar(
+                          radius: 22,
+                          backgroundColor: _colorFondoOscuro,
+                          child: Icon(Icons.add, color: Colors.white, size: 22),
+                        ),
+                        SizedBox(height: 6),
+                        Text('Agregar', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tarjetaHistorialBateo() {
+    if (_historialBateo.isEmpty) {
+      return _tarjetaProximamente(
+        'Historial reciente de bateo',
+        Icons.sports_baseball,
+        'Se llenara con los datos que registre el entrenador durante los juegos.',
+      );
+    }
+    return _tarjetaSeccion(
+      titulo: 'Historial reciente de bateo',
+      child: Column(
+        children: _historialBateo.map((e) {
+          return ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: CircleAvatar(
+              radius: 18,
+              backgroundColor: _colorAcento.withValues(alpha: 0.15),
+              child: Text(
+                e.etiqueta,
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _colorAcento),
+              ),
+            ),
+            title: Text(e.nombreLanzamiento),
+            subtitle: Text(e.fecha),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _tarjetaSeccion({required String titulo, required Widget child}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 10, offset: const Offset(0, 3)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            titulo.toUpperCase(),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 0.5),
+          ),
+          const SizedBox(height: 12),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _tarjetaProximamente(String titulo, IconData icono, String detalle) {
+    return _tarjetaSeccion(
+      titulo: titulo,
+      child: SizedBox(
+        width: double.infinity,
+        child: Column(
+          children: [
+            Icon(icono, color: Colors.grey.shade400, size: 32),
+            const SizedBox(height: 8),
+            Text(detalle, textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _tablaEstadisticas(BateadorPerfil p) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Promedio de bateo: ${_formatoPromedio(p.promedioBateo)}'),
+        Text('Hits: ${p.hits}'),
+        Text('Dobles: ${p.dobles}'),
+        Text('Triples: ${p.triples}'),
+        Text('Home runs: ${p.homeRuns}'),
+        Text('Carreras impulsadas: ${p.carrerasImpulsadas}'),
+        Text('Carreras anotadas: ${p.carrerasAnotadas}'),
+        Text('Bases robadas: ${p.basesRobadas}'),
+        Text('Turnos al bate: ${p.turnosAlBate}'),
+        Text('Bases por bolas: ${p.basesPorBolas}'),
+        Text('Golpeado por lanzador: ${p.golpePorLanzador}'),
+        Text('Elevados de sacrificio: ${p.elevadoSacrificio}'),
+        Text('Total de bases: ${p.totalBases}'),
+        Text('OBP: ${_formatoPromedio(p.porcentajeEmbase)}'),
+        Text('SLG: ${_formatoPromedio(p.porcentajeSlugging)}'),
+        Text('OPS: ${_formatoPromedio(p.ops)}'),
+      ],
+    );
+  }
+
+  Widget _filaVulnerabilidad(Map<String, dynamic> v) {
+    final nivel = (v['nivel_efectividad_contra'] as num?)?.toDouble();
+    final nombre = v['nombre'] as String;
+    final origen = v['origen'] as String;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(nombre),
+      subtitle: Text('Efectividad contra: ${_formatoPromedio(nivel)} ($origen)'),
+      trailing: const Icon(Icons.chevron_right, size: 20),
+      onTap: () => _abrirVulnerabilidad(existente: v),
+    );
+  }
+}
+
+

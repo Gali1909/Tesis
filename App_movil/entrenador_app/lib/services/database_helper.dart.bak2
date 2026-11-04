@@ -1,0 +1,849 @@
+﻿import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+import '../models/equipo.dart';
+import '../models/jugador.dart';
+import '../models/jugador_posicion.dart';
+import '../models/lanzador_rol.dart';
+import '../models/lanzador_perfil.dart';
+import '../models/bateador_perfil.dart';
+import '../models/lanzador_tipo_picheo.dart';
+import '../models/bateador_vulnerabilidad.dart';
+import '../models/lanzador_perfil_historico.dart';
+import '../models/bateo_evento.dart';
+import 'package:uuid/uuid.dart';
+
+class DatabaseHelper {
+  static final DatabaseHelper instance = DatabaseHelper._init();
+  static Database? _database;
+
+  DatabaseHelper._init();
+  static final Uuid _generadorUuid = Uuid();
+String _nuevoUuid() => _generadorUuid.v4();
+
+  Future<Database> get database async {
+    if (_database != null) return _database!;
+    _database = await _initDB('entrenador.db');
+    return _database!;
+  }
+
+  Future<Database> _initDB(String fileName) async {
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, fileName);
+    return await openDatabase(
+      path,
+      version: 4,
+      onConfigure: _configurarDB,
+      onCreate: _createDB,
+      onUpgrade: _upgradeDB,
+);
+  }
+  Future<void> _configurarDB(Database db) async {
+  await db.execute('PRAGMA foreign_keys = ON');
+}
+
+  Future _createDB(Database db, int version) async {
+    await db.execute('''
+      CREATE TABLE equipo (
+        equipo_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        tipo TEXT NOT NULL CHECK (tipo IN ('propio', 'rival'))
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE jugador (
+        jugador_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        equipo_id INTEGER NOT NULL,
+        nombre TEXT NOT NULL,
+        rol TEXT NOT NULL CHECK (rol IN ('lanzador', 'bateador')),
+        mano_bateo TEXT CHECK (mano_bateo IN ('derecha', 'izquierda', 'ambos')),
+        mano_lanzamiento TEXT CHECK (mano_lanzamiento IN ('zurdo', 'derecho')),
+        numero INTEGER,
+        foto TEXT,
+        FOREIGN KEY (equipo_id) REFERENCES equipo (equipo_id)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE jugador_posicion (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        jugador_id INTEGER NOT NULL,
+        posicion TEXT NOT NULL CHECK (posicion IN ('P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF')),
+        FOREIGN KEY (jugador_id) REFERENCES jugador (jugador_id)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE lanzador_rol (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        lanzador_id INTEGER NOT NULL,
+        rol_lanzador TEXT NOT NULL CHECK (rol_lanzador IN ('abridor', 'relevista', 'cerrador')),
+        FOREIGN KEY (lanzador_id) REFERENCES jugador (jugador_id)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE tipo_lanzamiento (
+        tipo_lanzamiento_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL UNIQUE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE lanzador_perfil (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        lanzador_id INTEGER NOT NULL,
+        temporada INTEGER NOT NULL,
+        juegos_ganados INTEGER DEFAULT 0,
+        juegos_perdidos INTEGER DEFAULT 0,
+        aperturas INTEGER DEFAULT 0,
+        salvados INTEGER DEFAULT 0,
+        juegos_lanzados INTEGER DEFAULT 0,
+        innings_lanzados REAL DEFAULT 0,
+        ponches INTEGER DEFAULT 0,
+        bases_por_bolas INTEGER DEFAULT 0,
+        hits_permitidos INTEGER DEFAULT 0,
+        carreras_limpias INTEGER DEFAULT 0,
+        FOREIGN KEY (lanzador_id) REFERENCES jugador (jugador_id),
+        UNIQUE (lanzador_id, temporada)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE lanzador_perfil_historico (
+        lanzador_id INTEGER PRIMARY KEY,
+        juegos_ganados INTEGER DEFAULT 0,
+        juegos_perdidos INTEGER DEFAULT 0,
+        aperturas INTEGER DEFAULT 0,
+        salvados INTEGER DEFAULT 0,
+        juegos_lanzados INTEGER DEFAULT 0,
+        innings_lanzados REAL DEFAULT 0,
+        ponches INTEGER DEFAULT 0,
+        bases_por_bolas INTEGER DEFAULT 0,
+        hits_permitidos INTEGER DEFAULT 0,
+        carreras_limpias INTEGER DEFAULT 0,
+        FOREIGN KEY (lanzador_id) REFERENCES jugador (jugador_id)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE lanzador_tipo_picheo (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        lanzador_id INTEGER NOT NULL,
+        tipo_lanzamiento_id INTEGER NOT NULL,
+        frecuencia REAL,
+        velocidad_promedio REAL,
+        velocidad_max REAL,
+        FOREIGN KEY (lanzador_id) REFERENCES jugador (jugador_id),
+        FOREIGN KEY (tipo_lanzamiento_id) REFERENCES tipo_lanzamiento (tipo_lanzamiento_id)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE bateador_perfil (
+        bateador_id INTEGER PRIMARY KEY,
+        promedio_bateo REAL,
+        carreras_impulsadas INTEGER DEFAULT 0,
+        carreras_anotadas INTEGER DEFAULT 0,
+        home_runs INTEGER DEFAULT 0,
+        dobles INTEGER DEFAULT 0,
+        triples INTEGER DEFAULT 0,
+        hits INTEGER DEFAULT 0,
+        turnos_al_bate INTEGER DEFAULT 0,
+        bases_por_bolas INTEGER DEFAULT 0,
+        golpe_por_lanzador INTEGER DEFAULT 0,
+        elevado_sacrificio INTEGER DEFAULT 0,
+        bases_robadas INTEGER DEFAULT 0,
+        FOREIGN KEY (bateador_id) REFERENCES jugador (jugador_id)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE bateador_vulnerabilidad (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        bateador_id INTEGER NOT NULL,
+        tipo_lanzamiento_id INTEGER NOT NULL,
+        nivel_efectividad_contra REAL,
+        origen TEXT NOT NULL CHECK (origen IN ('manual', 'calculado')),
+        FOREIGN KEY (bateador_id) REFERENCES jugador (jugador_id),
+        FOREIGN KEY (tipo_lanzamiento_id) REFERENCES tipo_lanzamiento (tipo_lanzamiento_id)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE bateo_evento (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        bateador_id INTEGER NOT NULL,
+        juego_id INTEGER,
+        tipo_lanzamiento_id INTEGER NOT NULL,
+        resultado TEXT NOT NULL CHECK (resultado IN ('sencillo','doble','triple','home_run','out','ponche','boleto','golpe_por_lanzador')),
+        fecha TEXT NOT NULL,
+        FOREIGN KEY (bateador_id) REFERENCES jugador (jugador_id),
+        FOREIGN KEY (juego_id) REFERENCES juego (juego_id),
+        FOREIGN KEY (tipo_lanzamiento_id) REFERENCES tipo_lanzamiento (tipo_lanzamiento_id)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE juego (
+        juego_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        fecha TEXT NOT NULL,
+        equipo_rival_id INTEGER,
+        carreras_propias INTEGER,
+        carreras_rival INTEGER,
+        FOREIGN KEY (equipo_rival_id) REFERENCES equipo (equipo_id)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE estadistica_juego_lanzador (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        juego_id INTEGER NOT NULL,
+        lanzador_id INTEGER NOT NULL,
+        innings_lanzados_juego REAL,
+        picheos_lanzados INTEGER,
+        carreras_permitidas INTEGER,
+        ponches INTEGER,
+        bases_por_bolas INTEGER,
+        hits_permitidos INTEGER,
+        FOREIGN KEY (juego_id) REFERENCES juego (juego_id),
+        FOREIGN KEY (lanzador_id) REFERENCES jugador (jugador_id)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE estadistica_juego_bateador (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        juego_id INTEGER NOT NULL,
+        bateador_id INTEGER NOT NULL,
+        turnos_al_bate INTEGER,
+        hits_juego INTEGER,
+        carreras_impulsadas_juego INTEGER,
+        carreras_anotadas_juego INTEGER,
+        home_runs_juego INTEGER,
+        dobles_juego INTEGER,
+        triples_juego INTEGER,
+        ponches_juego INTEGER,
+        bases_por_bolas_juego INTEGER,
+        FOREIGN KEY (juego_id) REFERENCES juego (juego_id),
+        FOREIGN KEY (bateador_id) REFERENCES jugador (jugador_id)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE jugada_estrategica (
+        jugada_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        descripcion TEXT,
+        audio_path TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE sincronizacion (
+        sync_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        fecha TEXT NOT NULL,
+        origen TEXT NOT NULL,
+        estado TEXT NOT NULL CHECK (estado IN ('exitosa', 'fallida', 'parcial')),
+        registros_importados INTEGER DEFAULT 0,
+        detalle TEXT
+      )
+    ''');
+  }
+
+static const Map<String, String> _tablasConUuid = {
+  'equipo': 'equipo_id',
+  'jugador': 'jugador_id',
+  'juego': 'juego_id',
+  'bateo_evento': 'id',
+  'bateador_vulnerabilidad': 'id',
+};
+
+Future<void> _agregarUuid(Database db) async {
+  for (final entrada in _tablasConUuid.entries) {
+    final tabla = entrada.key;
+    final clave = entrada.value;
+    // 1. Agregar la columna
+    await db.execute('ALTER TABLE $tabla ADD COLUMN uuid TEXT');
+    // 2. Dar un uuid a las filas que ya existen
+    final filas = await db.query(tabla, columns: [clave]);
+    for (final fila in filas) {
+      await db.update(
+        tabla,
+        {'uuid': _nuevoUuid()},
+        where: '$clave = ?',
+        whereArgs: [fila[clave]],
+      );
+    }
+    // 3. Evitar que dos filas tengan el mismo uuid
+    await db.execute('CREATE UNIQUE INDEX idx_${tabla}_uuid ON $tabla (uuid)');
+  }
+}
+
+  Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE bateador_perfil ADD COLUMN turnos_al_bate INTEGER DEFAULT 0');
+      await db.execute('ALTER TABLE bateador_perfil ADD COLUMN bases_por_bolas INTEGER DEFAULT 0');
+      await db.execute('ALTER TABLE bateador_perfil ADD COLUMN golpe_por_lanzador INTEGER DEFAULT 0');
+      await db.execute('ALTER TABLE bateador_perfil ADD COLUMN elevado_sacrificio INTEGER DEFAULT 0');
+      await db.execute('ALTER TABLE bateador_perfil ADD COLUMN bases_robadas INTEGER DEFAULT 0');
+    }
+    if (oldVersion < 3) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS bateo_evento (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          bateador_id INTEGER NOT NULL,
+          juego_id INTEGER,
+          tipo_lanzamiento_id INTEGER NOT NULL,
+          resultado TEXT NOT NULL CHECK (resultado IN ('sencillo','doble','triple','home_run','out','ponche','boleto','golpe_por_lanzador')),
+          fecha TEXT NOT NULL,
+          FOREIGN KEY (bateador_id) REFERENCES jugador (jugador_id),
+          FOREIGN KEY (juego_id) REFERENCES juego (juego_id),
+          FOREIGN KEY (tipo_lanzamiento_id) REFERENCES tipo_lanzamiento (tipo_lanzamiento_id)
+        )
+      ''');
+      if (oldVersion < 4) {
+  await _agregarUuid(db);
+}
+    }
+  }
+
+  Future<int> crearEquipo(Equipo equipo) async {
+    final db = await instance.database;
+    return await db.insert('equipo', equipo.toMap());
+  }
+
+  Future<List<Equipo>> obtenerEquipos() async {
+    final db = await instance.database;
+    final resultado = await db.query('equipo');
+    return resultado.map((mapa) => Equipo.fromMap(mapa)).toList();
+  }
+
+  Future<int> actualizarEquipo(Equipo equipo) async {
+    final db = await instance.database;
+    return await db.update(
+      'equipo',
+      equipo.toMap(),
+      where: 'equipo_id = ?',
+      whereArgs: [equipo.equipoId],
+    );
+  }
+
+  Future<int> borrarEquipo(int equipoId) async {
+  final db = await instance.database;
+  final jugadores = await db.query(
+    'jugador',
+    columns: ['jugador_id'],
+    where: 'equipo_id = ?',
+    whereArgs: [equipoId],
+  );
+  for (final j in jugadores) {
+    await borrarJugador(j['jugador_id'] as int);
+  }
+  await db.update(
+    'juego',
+    {'equipo_rival_id': null},
+    where: 'equipo_rival_id = ?',
+    whereArgs: [equipoId],
+  );
+  return await db.delete(
+    'equipo',
+    where: 'equipo_id = ?',
+    whereArgs: [equipoId],
+  );
+}
+
+  Future<int> crearJugador(Jugador jugador) async {
+    final db = await instance.database;
+    return await db.insert('jugador', jugador.toMap());
+  }
+
+  Future<int> agregarPosicion(JugadorPosicion posicion) async {
+    final db = await instance.database;
+    return await db.insert('jugador_posicion', posicion.toMap());
+  }
+
+  Future<int> agregarRolLanzador(LanzadorRol rol) async {
+    final db = await instance.database;
+    return await db.insert('lanzador_rol', rol.toMap());
+  }
+
+  Future<List<Jugador>> obtenerJugadoresPorEquipo(int equipoId) async {
+    final db = await instance.database;
+    final resultado = await db.query(
+      'jugador',
+      where: 'equipo_id = ?',
+      whereArgs: [equipoId],
+    );
+    return resultado.map((mapa) => Jugador.fromMap(mapa)).toList();
+  }
+
+  Future<Jugador?> obtenerJugadorPorId(int jugadorId) async {
+    final db = await instance.database;
+    final resultado = await db.query(
+      'jugador',
+      where: 'jugador_id = ?',
+      whereArgs: [jugadorId],
+    );
+    if (resultado.isEmpty) return null;
+    return Jugador.fromMap(resultado.first);
+  }
+
+  Future<int> actualizarDatosBasicosJugador({
+    required int jugadorId,
+    required String nombre,
+    int? numero,
+    String? manoLanzamiento,
+    String? foto,
+  }) async {
+    final db = await instance.database;
+    return await db.update(
+      'jugador',
+      {
+        'nombre': nombre,
+        'numero': numero,
+        'mano_lanzamiento': manoLanzamiento,
+        'foto': foto,
+      },
+      where: 'jugador_id = ?',
+      whereArgs: [jugadorId],
+    );
+  }
+
+  Future<int> agregarRolLanzadorTexto(int lanzadorId, String rolLanzador) async {
+    final db = await instance.database;
+    return await db.insert('lanzador_rol', {
+      'lanzador_id': lanzadorId,
+      'rol_lanzador': rolLanzador,
+    });
+  }
+
+  Future<List<JugadorPosicion>> obtenerPosiciones(int jugadorId) async {
+    final db = await instance.database;
+    final resultado = await db.query(
+      'jugador_posicion',
+      where: 'jugador_id = ?',
+      whereArgs: [jugadorId],
+    );
+    return resultado.map((mapa) => JugadorPosicion.fromMap(mapa)).toList();
+  }
+
+  Future<List<LanzadorRol>> obtenerRolesLanzador(int lanzadorId) async {
+    final db = await instance.database;
+    final resultado = await db.query(
+      'lanzador_rol',
+      where: 'lanzador_id = ?',
+      whereArgs: [lanzadorId],
+    );
+    return resultado.map((mapa) => LanzadorRol.fromMap(mapa)).toList();
+  }
+
+  Future<Equipo?> obtenerEquipoPorId(int equipoId) async {
+    final db = await instance.database;
+    final resultado = await db.query(
+      'equipo',
+      where: 'equipo_id = ?',
+      whereArgs: [equipoId],
+    );
+    if (resultado.isEmpty) return null;
+    return Equipo.fromMap(resultado.first);
+  }
+
+  Future<int> actualizarJugador(Jugador jugador) async {
+    final db = await instance.database;
+    return await db.update(
+      'jugador',
+      jugador.toMap(),
+      where: 'jugador_id = ?',
+      whereArgs: [jugador.jugadorId],
+    );
+  }
+
+  Future<int> borrarJugador(int jugadorId) async {
+  final db = await instance.database;
+  return await db.transaction((txn) async {
+    // tabla -> columna que apunta al jugador
+    const tablasHijas = {
+      'jugador_posicion': 'jugador_id',
+      'lanzador_rol': 'lanzador_id',
+      'lanzador_perfil': 'lanzador_id',
+      'lanzador_perfil_historico': 'lanzador_id',
+      'lanzador_tipo_picheo': 'lanzador_id',
+      'bateador_perfil': 'bateador_id',
+      'bateador_vulnerabilidad': 'bateador_id',
+      'bateo_evento': 'bateador_id',
+      'estadistica_juego_lanzador': 'lanzador_id',
+      'estadistica_juego_bateador': 'bateador_id',
+    };
+    for (final entrada in tablasHijas.entries) {
+      await txn.delete(
+        entrada.key,
+        where: '${entrada.value} = ?',
+        whereArgs: [jugadorId],
+      );
+    }
+    return await txn.delete(
+      'jugador',
+      where: 'jugador_id = ?',
+      whereArgs: [jugadorId],
+    );
+  });
+}
+
+  Future<void> borrarPosicionesYRoles(int jugadorId) async {
+    final db = await instance.database;
+    await db.delete(
+      'jugador_posicion',
+      where: 'jugador_id = ?',
+      whereArgs: [jugadorId],
+    );
+    await db.delete(
+      'lanzador_rol',
+      where: 'lanzador_id = ?',
+      whereArgs: [jugadorId],
+    );
+  }
+
+  Future<LanzadorPerfil?> obtenerLanzadorPerfil(int lanzadorId, int temporada) async {
+    final db = await instance.database;
+    final resultado = await db.query(
+      'lanzador_perfil',
+      where: 'lanzador_id = ? AND temporada = ?',
+      whereArgs: [lanzadorId, temporada],
+    );
+    if (resultado.isEmpty) return null;
+    return LanzadorPerfil.fromMap(resultado.first);
+  }
+
+  Future<LanzadorPerfilHistorico?> obtenerLanzadorPerfilHistorico(int lanzadorId) async {
+    final db = await instance.database;
+    final resultado = await db.query(
+      'lanzador_perfil_historico',
+      where: 'lanzador_id = ?',
+      whereArgs: [lanzadorId],
+    );
+    if (resultado.isEmpty) return null;
+    return LanzadorPerfilHistorico.fromMap(resultado.first);
+  }
+
+  Future<List<int>> obtenerTemporadasLanzador(int lanzadorId) async {
+    final db = await instance.database;
+    final resultado = await db.query(
+      'lanzador_perfil',
+      columns: ['temporada'],
+      where: 'lanzador_id = ?',
+      whereArgs: [lanzadorId],
+      orderBy: 'temporada DESC',
+    );
+    return resultado.map((mapa) => mapa['temporada'] as int).toList();
+  }
+
+  Future<int> guardarLanzadorPerfil(LanzadorPerfil perfil) async {
+    final db = await instance.database;
+    final existente = await obtenerLanzadorPerfil(perfil.lanzadorId, perfil.temporada);
+    final mapa = perfil.toMap()..remove('id');
+    if (existente != null) {
+      return await db.update(
+        'lanzador_perfil',
+        mapa,
+        where: 'id = ?',
+        whereArgs: [existente.id],
+      );
+    } else {
+      return await db.insert('lanzador_perfil', mapa);
+    }
+  }
+
+  Future<int> guardarLanzadorPerfilHistorico(LanzadorPerfilHistorico perfil) async {
+    final db = await instance.database;
+    return await db.insert(
+      'lanzador_perfil_historico',
+      perfil.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<int> guardarBateadorPerfil({
+    required int bateadorId,
+    required int carrerasImpulsadas,
+    required int carrerasAnotadas,
+    required int homeRuns,
+    required int dobles,
+    required int triples,
+    required int hits,
+    int turnosAlBate = 0,
+    int basesPorBolas = 0,
+    int golpePorLanzador = 0,
+    int elevadoSacrificio = 0,
+    int basesRobadas = 0,
+  }) async {
+    final db = await instance.database;
+    final promedioBateo = turnosAlBate == 0 ? null : hits / turnosAlBate;
+    return await db.insert(
+      'bateador_perfil',
+      {
+        'bateador_id': bateadorId,
+        'promedio_bateo': promedioBateo,
+        'carreras_impulsadas': carrerasImpulsadas,
+        'carreras_anotadas': carrerasAnotadas,
+        'home_runs': homeRuns,
+        'dobles': dobles,
+        'triples': triples,
+        'hits': hits,
+        'turnos_al_bate': turnosAlBate,
+        'bases_por_bolas': basesPorBolas,
+        'golpe_por_lanzador': golpePorLanzador,
+        'elevado_sacrificio': elevadoSacrificio,
+        'bases_robadas': basesRobadas,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> obtenerVulnerabilidadesDetalle(int bateadorId) async {
+    final db = await instance.database;
+    return await db.rawQuery('''
+      SELECT bateador_vulnerabilidad.id,
+             bateador_vulnerabilidad.tipo_lanzamiento_id,
+             bateador_vulnerabilidad.nivel_efectividad_contra,
+             bateador_vulnerabilidad.origen,
+             tipo_lanzamiento.nombre
+      FROM bateador_vulnerabilidad
+      JOIN tipo_lanzamiento
+        ON bateador_vulnerabilidad.tipo_lanzamiento_id = tipo_lanzamiento.tipo_lanzamiento_id
+      WHERE bateador_vulnerabilidad.bateador_id = ?
+      ORDER BY bateador_vulnerabilidad.nivel_efectividad_contra ASC
+    ''', [bateadorId]);
+  }
+
+  Future<int> guardarBateadorVulnerabilidad({
+    int? id,
+    required int bateadorId,
+    required int tipoLanzamientoId,
+    double? nivelEfectividadContra,
+  }) async {
+    final db = await instance.database;
+    final datos = {
+      'bateador_id': bateadorId,
+      'tipo_lanzamiento_id': tipoLanzamientoId,
+      'nivel_efectividad_contra': nivelEfectividadContra,
+      'origen': 'manual',
+    };
+    int? idDestino = id;
+    if (idDestino == null) {
+      final repetido = await db.query(
+        'bateador_vulnerabilidad',
+        columns: ['id'],
+        where: 'bateador_id = ? AND tipo_lanzamiento_id = ?',
+        whereArgs: [bateadorId, tipoLanzamientoId],
+      );
+      if (repetido.isNotEmpty) idDestino = repetido.first['id'] as int;
+    }
+    if (idDestino != null) {
+      return await db.update('bateador_vulnerabilidad', datos, where: 'id = ?', whereArgs: [idDestino]);
+    }
+    return await db.insert('bateador_vulnerabilidad', datos);
+  }
+
+  Future<int> borrarBateadorVulnerabilidad(int id) async {
+    final db = await instance.database;
+    return await db.delete('bateador_vulnerabilidad', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> actualizarDatosBateador({
+    required int jugadorId,
+    required String nombre,
+    int? numero,
+    String? manoBateo,
+    String? foto,
+  }) async {
+    final db = await instance.database;
+    return await db.update(
+      'jugador',
+      {
+        'nombre': nombre,
+        'numero': numero,
+        'mano_bateo': manoBateo,
+        'foto': foto,
+      },
+      where: 'jugador_id = ?',
+      whereArgs: [jugadorId],
+    );
+  }
+
+  Future<int> agregarPosicionTexto(int jugadorId, String posicion) async {
+    final db = await instance.database;
+    return await db.insert('jugador_posicion', {
+      'jugador_id': jugadorId,
+      'posicion': posicion,
+    });
+  }
+  Future<BateadorPerfil?> obtenerBateadorPerfil(int bateadorId) async {
+    final db = await instance.database;
+    final resultado = await db.query(
+      'bateador_perfil',
+      where: 'bateador_id = ?',
+      whereArgs: [bateadorId],
+    );
+    if (resultado.isEmpty) return null;
+    return BateadorPerfil.fromMap(resultado.first);
+  }
+
+  Future<List<LanzadorTipoPicheo>> obtenerTiposPicheo(int lanzadorId) async {
+    final db = await instance.database;
+    final resultado = await db.rawQuery('''
+      SELECT lanzador_tipo_picheo.*, tipo_lanzamiento.nombre
+      FROM lanzador_tipo_picheo
+      JOIN tipo_lanzamiento
+        ON lanzador_tipo_picheo.tipo_lanzamiento_id = tipo_lanzamiento.tipo_lanzamiento_id
+      WHERE lanzador_tipo_picheo.lanzador_id = ?
+    ''', [lanzadorId]);
+    return resultado.map((mapa) => LanzadorTipoPicheo.fromMap(mapa)).toList();
+  }
+
+  static const List<String> tiposLanzamientoPredeterminados = [
+    'Four-Seam Fastball',
+    'Two-Seam Fastball',
+    'Sinker',
+    'Cutter',
+    'Split-Finger Fastball',
+    'Curveball',
+    'Slider',
+    'Sweeper',
+    'Changeup',
+    'Circle Change',
+    'Splitter',
+    'Forkball',
+    'Knuckleball',
+    'Screwball',
+  ];
+
+  Future<List<Map<String, dynamic>>> obtenerCatalogoTiposLanzamiento() async {
+    final db = await instance.database;
+
+    for (final nombre in tiposLanzamientoPredeterminados) {
+      await db.insert(
+        'tipo_lanzamiento',
+        {'nombre': nombre},
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+    }
+
+    final resultado = await db.query('tipo_lanzamiento');
+    final lista = List<Map<String, dynamic>>.from(resultado);
+
+    int posicion(String nombre) {
+      final i = tiposLanzamientoPredeterminados.indexOf(nombre);
+      return i == -1 ? tiposLanzamientoPredeterminados.length : i;
+    }
+
+    lista.sort((a, b) {
+      final pa = posicion(a['nombre'] as String);
+      final pb = posicion(b['nombre'] as String);
+      if (pa != pb) return pa.compareTo(pb);
+      return (a['nombre'] as String).compareTo(b['nombre'] as String);
+    });
+
+    return lista;
+  }
+
+  Future<int> obtenerOCrearTipoLanzamiento(String nombre) async {
+    final db = await instance.database;
+    final nombreLimpio = nombre.trim();
+    final existente = await db.query(
+      'tipo_lanzamiento',
+      where: 'nombre = ?',
+      whereArgs: [nombreLimpio],
+    );
+    if (existente.isNotEmpty) {
+      return existente.first['tipo_lanzamiento_id'] as int;
+    }
+    return await db.insert('tipo_lanzamiento', {'nombre': nombreLimpio});
+  }
+
+  Future<int> guardarLanzadorTipoPicheo({
+    int? id,
+    required int lanzadorId,
+    required int tipoLanzamientoId,
+    double? frecuencia,
+    double? velocidadPromedio,
+    double? velocidadMax,
+  }) async {
+    final db = await instance.database;
+    final datos = {
+      'lanzador_id': lanzadorId,
+      'tipo_lanzamiento_id': tipoLanzamientoId,
+      'frecuencia': frecuencia,
+      'velocidad_promedio': velocidadPromedio,
+      'velocidad_max': velocidadMax,
+    };
+    if (id != null) {
+      return await db.update('lanzador_tipo_picheo', datos, where: 'id = ?', whereArgs: [id]);
+    } else {
+      return await db.insert('lanzador_tipo_picheo', datos);
+    }
+  }
+
+  Future<int> borrarLanzadorTipoPicheo(int id) async {
+    final db = await instance.database;
+    return await db.delete('lanzador_tipo_picheo', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<List<BateadorVulnerabilidad>> obtenerVulnerabilidades(int bateadorId) async {
+    final db = await instance.database;
+    final resultado = await db.rawQuery('''
+      SELECT bateador_vulnerabilidad.*, tipo_lanzamiento.nombre
+      FROM bateador_vulnerabilidad
+      JOIN tipo_lanzamiento
+        ON bateador_vulnerabilidad.tipo_lanzamiento_id = tipo_lanzamiento.tipo_lanzamiento_id
+      WHERE bateador_vulnerabilidad.bateador_id = ?
+      ORDER BY bateador_vulnerabilidad.nivel_efectividad_contra ASC
+    ''', [bateadorId]);
+    return resultado.map((mapa) => BateadorVulnerabilidad.fromMap(mapa)).toList();
+  }
+
+  Future<int> registrarBateoEvento({
+    required int bateadorId,
+    int? juegoId,
+    required int tipoLanzamientoId,
+    required String resultado,
+    String? fecha,
+  }) async {
+    final db = await instance.database;
+    return await db.insert('bateo_evento', {
+      'bateador_id': bateadorId,
+      'juego_id': juegoId,
+      'tipo_lanzamiento_id': tipoLanzamientoId,
+      'resultado': resultado,
+      'fecha': fecha ?? DateTime.now().toIso8601String(),
+    });
+  }
+
+  Future<List<BateoEvento>> obtenerHistorialBateo(int bateadorId, {int limite = 10}) async {
+    final db = await instance.database;
+    final resultado = await db.rawQuery('''
+      SELECT bateo_evento.*, tipo_lanzamiento.nombre
+      FROM bateo_evento
+      JOIN tipo_lanzamiento
+        ON bateo_evento.tipo_lanzamiento_id = tipo_lanzamiento.tipo_lanzamiento_id
+      WHERE bateo_evento.bateador_id = ?
+      ORDER BY bateo_evento.fecha DESC
+      LIMIT ?
+    ''', [bateadorId, limite]);
+    return resultado.map((mapa) => BateoEvento.fromMap(mapa)).toList();
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

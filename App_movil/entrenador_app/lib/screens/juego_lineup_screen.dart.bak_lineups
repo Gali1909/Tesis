@@ -1,0 +1,337 @@
+import 'package:flutter/material.dart';
+
+import '../models/equipo.dart';
+import '../models/jugador.dart';
+import '../services/database_helper.dart';
+import '../services/juego_lineup_db.dart';
+import '../services/juego_vivo_db.dart';
+import 'juego_vivo_screen.dart';
+
+const Color _fondo = Color(0xFF14171C);
+const Color _superficie = Color(0xFF1E232B);
+const Color _cian = Color(0xFF0ABDCF);
+const Color _textoSuave = Color(0xFF9AA4B2);
+
+const int _minPuestos = 9;
+const int _maxPuestos = 12;
+const List<String> _posiciones = [
+  'P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'BD',
+];
+
+/// Arma el lineup y elige el abridor. Si el juego ya tiene lineup, pasa
+/// directo a la pantalla del juego.
+class JuegoLineupScreen extends StatefulWidget {
+  final int juegoId;
+
+  const JuegoLineupScreen({super.key, required this.juegoId});
+
+  @override
+  State<JuegoLineupScreen> createState() => _JuegoLineupScreenState();
+}
+
+class _JuegoLineupScreenState extends State<JuegoLineupScreen> {
+  List<Jugador> _jugadores = [];
+  List<Jugador> _lanzadores = [];
+  final List<int?> _ids = List<int?>.filled(_minPuestos, null, growable: true);
+  final List<String?> _pos = List<String?>.filled(_minPuestos, null, growable: true);
+  int? _abridorId;
+  bool _cargando = true;
+  bool _guardando = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargar();
+  }
+
+  Future<void> _cargar() async {
+    final db = DatabaseHelper.instance;
+    final existente = await db.obtenerLineupJuego(widget.juegoId);
+    if (!mounted) return;
+    if (existente.isNotEmpty) {
+      _irAlJuego();
+      return;
+    }
+    final equipos = await db.obtenerEquipos();
+    int? propioId;
+    for (final Equipo e in equipos) {
+      if (e.tipo == 'propio') {
+        propioId = e.equipoId;
+        break;
+      }
+    }
+    var todos = <Jugador>[];
+    if (propioId != null) {
+      todos = await db.obtenerJugadoresPorEquipo(propioId);
+    }
+    if (!mounted) return;
+    setState(() {
+      _jugadores = todos;
+      _lanzadores = todos.where((j) => j.rol == 'lanzador').toList();
+      _cargando = false;
+    });
+  }
+
+  void _irAlJuego() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => JuegoVivoScreen(juegoId: widget.juegoId)),
+    );
+  }
+
+  String _etiqueta(Jugador j) =>
+      '${j.numero != null ? '#${j.numero} ' : ''}${j.nombre}';
+
+  bool get _completo =>
+      _ids.every((i) => i != null) &&
+      (_lanzadores.isEmpty || _abridorId != null);
+
+  Future<void> _comenzar() async {
+    if (!_completo || _guardando) return;
+    setState(() => _guardando = true);
+    try {
+      await DatabaseHelper.instance.guardarLineupJuego(
+        widget.juegoId,
+        [
+          for (var i = 0; i < _ids.length; i++)
+            {'jugador_id': _ids[i], 'posicion': _pos[i]},
+        ],
+        _abridorId,
+      );
+      if (!mounted) return;
+      _irAlJuego();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _guardando = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo guardar la alineacion: $e')),
+      );
+    }
+  }
+
+  Future<void> _descartar() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Descartar juego'),
+        content: const Text('Se borra este juego en curso. No se puede deshacer.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('CANCELAR'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('DESCARTAR'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await DatabaseHelper.instance.descartarJuegoVivo(widget.juegoId);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo descartar: $e')),
+      );
+      return;
+    }
+    if (!mounted) return;
+    Navigator.pop(context, true);
+  }
+
+  Widget _fila(int i) {
+    final usados = <int>{
+      for (var k = 0; k < _ids.length; k++)
+        if (k != i && _ids[k] != null) _ids[k]!,
+    };
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 28,
+            child: Text(
+              '${i + 1}',
+              style: const TextStyle(
+                color: _cian,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+          ),
+          Expanded(
+            child: DropdownButton<int?>(
+              isExpanded: true,
+              value: _ids[i],
+              hint: const Text('Bateador', style: TextStyle(color: _textoSuave)),
+              dropdownColor: _superficie,
+              style: const TextStyle(color: Colors.white, fontSize: 15),
+              items: [
+                for (final j in _jugadores)
+                  if (!usados.contains(j.jugadorId))
+                    DropdownMenuItem<int?>(
+                      value: j.jugadorId,
+                      child: Text(_etiqueta(j), overflow: TextOverflow.ellipsis),
+                    ),
+              ],
+              onChanged: (v) => setState(() => _ids[i] = v),
+            ),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 76,
+            child: DropdownButton<String?>(
+              isExpanded: true,
+              value: _pos[i],
+              hint: const Text('Pos', style: TextStyle(color: _textoSuave)),
+              dropdownColor: _superficie,
+              style: const TextStyle(color: Colors.white, fontSize: 15),
+              items: [
+                const DropdownMenuItem<String?>(value: null, child: Text('-')),
+                for (final p in _posiciones)
+                  DropdownMenuItem<String?>(value: p, child: Text(p)),
+              ],
+              onChanged: (v) => setState(() => _pos[i] = v),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _cuerpo() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: _superficie,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'LANZADOR ABRIDOR',
+                style: TextStyle(color: _textoSuave, fontSize: 12, letterSpacing: 2),
+              ),
+              DropdownButton<int?>(
+                isExpanded: true,
+                value: _abridorId,
+                hint: Text(
+                  _lanzadores.isEmpty ? 'No hay lanzadores en tu equipo' : 'Elegir lanzador',
+                  style: const TextStyle(color: _textoSuave),
+                ),
+                dropdownColor: _superficie,
+                style: const TextStyle(color: Colors.white, fontSize: 16),
+                items: [
+                  for (final j in _lanzadores)
+                    DropdownMenuItem<int?>(
+                      value: j.jugadorId,
+                      child: Text(_etiqueta(j), overflow: TextOverflow.ellipsis),
+                    ),
+                ],
+                onChanged: (v) => setState(() => _abridorId = v),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: _superficie,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'ORDEN AL BATE',
+                style: TextStyle(color: _textoSuave, fontSize: 12, letterSpacing: 2),
+              ),
+              const SizedBox(height: 4),
+              for (var i = 0; i < _ids.length; i++) _fila(i),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  TextButton.icon(
+                    onPressed: _ids.length >= _maxPuestos
+                        ? null
+                        : () => setState(() {
+                              _ids.add(null);
+                              _pos.add(null);
+                            }),
+                    icon: const Icon(Icons.add),
+                    label: const Text('PUESTO'),
+                  ),
+                  TextButton.icon(
+                    onPressed: _ids.length <= _minPuestos
+                        ? null
+                        : () => setState(() {
+                              _ids.removeLast();
+                              _pos.removeLast();
+                            }),
+                    icon: const Icon(Icons.remove),
+                    label: const Text('PUESTO'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        if (_jugadores.length < _minPuestos)
+          const Padding(
+            padding: EdgeInsets.only(top: 10),
+            child: Text(
+              'Tu equipo tiene menos jugadores que puestos en el lineup. Agrega los que falten en Jugadores.',
+              style: TextStyle(color: _textoSuave, fontSize: 12),
+            ),
+          ),
+        const SizedBox(height: 20),
+        ElevatedButton.icon(
+          onPressed: (_completo && !_guardando) ? _comenzar : null,
+          icon: const Icon(Icons.sports_baseball),
+          label: const Text(
+            'COMENZAR JUEGO',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _cian,
+            foregroundColor: Colors.black,
+            disabledBackgroundColor: const Color(0xFF2A303A),
+            minimumSize: const Size.fromHeight(56),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: _fondo,
+      appBar: AppBar(
+        backgroundColor: _fondo,
+        foregroundColor: Colors.white,
+        title: const Text('ALINEACION'),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (v) {
+              if (v == 'descartar') _descartar();
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'descartar', child: Text('Descartar juego')),
+            ],
+          ),
+        ],
+      ),
+      body: _cargando
+          ? const Center(child: CircularProgressIndicator())
+          : _cuerpo(),
+    );
+  }
+}

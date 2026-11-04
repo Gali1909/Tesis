@@ -1,0 +1,8 @@
+Lo que quiero que tenga la app móvil
+1. Ver los perfiles de los lanzadores: Que picheos puede realizar el lanzador, frecuencia con la que lanza un picheo, velocidad a la que lanza cada tipo de lanzamiento, efectividad, juegos ganados, perdidos, inings lanzados, juegos lanzados.
+2. Ver los perfiles de los bateadores del equipo y del equipo contrario: Que lanzamientos le hacen daño al bateador, promedio de bateo, carreras impulsadas y anotadas, homerun, 2B, H, 3B.
+3. Analítica de los lanzadores y bateadores despues del juego: Análisis de los resultados de cada lanzador y bateador en el juego
+4. Poder configurar la pantalla del catcher y del coach atreves de esta app móvil.
+5. Cargar toda la información recolectada de la pantalla del coach: Desempeño de los lanzadores todo el análisis sobre todo esto, desempeño de los bateadores todo el análisis sobre todo esto.
+7. Almacenar jugadas estratégicas y tipos de lanzamientos: Cargar estas jugadas a las pantallas del coach y catcher y también cargar los audios a los módulos de los jugadores. 
+6. Conexión con las pantallas del catcher y coach con Bluthooth y wi-fi.

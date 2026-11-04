@@ -1,0 +1,229 @@
+// uart_bridge.c
+#include <string.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "driver/uart.h"
+#include "driver/gpio.h"
+#include "esp_log.h"
+#include "uart_bridge.h"
+
+static const char *TAG = "UART_BRIDGE";
+
+#define UART_BRIDGE_PORT     UART_NUM_1
+// Los pines IO6/IO7 NO son los que realmente conecta el socket "Wireless
+// Module" hacia el UART del modulo C6 (esto se penso originalmente por
+// "numero con numero" sin verificar contra el datasheet). Alineando la
+// columna del socket del P4 (IO27,IO8,IO7,IO6,3V3,GND,NC) con la "Right
+// Interface" del datasheet del modulo (U1RXD,GPIO21,GPIO22,GPIO23,VDD3V3,
+// GND,VBUS), los pines 3V3 y GND coinciden exactamente en la misma
+// posicion (5ta y 6ta) - eso confirma que el socket se inserta espejado
+// y que los pines reales de UART son IO27 (-> U1RXD del modulo) e IO28
+// (<- U1TXD del modulo), no IO6/IO7.
+#define UART_BRIDGE_TX_PIN   GPIO_NUM_27
+#define UART_BRIDGE_RX_PIN   GPIO_NUM_28
+#define UART_BRIDGE_BAUD     115200
+
+#define FRAME_START   0xAA
+#define FRAME_END     0x55
+#define MAX_PAYLOAD   64
+
+static bool s_initialized = false;
+static uart_bridge_frame_cb_t s_frame_cb = NULL;
+static uart_bridge_frame_cb_t s_perfil_cb = NULL;
+
+static void uart_bridge_rx_task(void *pvParameters);
+
+void uart_bridge_set_frame_callback(uart_bridge_frame_cb_t cb)
+{
+    s_frame_cb = cb;
+}
+
+void uart_bridge_set_perfil_callback(uart_bridge_frame_cb_t cb)
+{
+    s_perfil_cb = cb;
+}
+
+esp_err_t uart_bridge_init(void)
+{
+    uart_config_t config = {
+        .baud_rate = UART_BRIDGE_BAUD,
+        .data_bits = UART_DATA_8_BITS,
+        .parity    = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .source_clk = UART_SCLK_DEFAULT,
+    };
+
+    esp_err_t err = uart_driver_install(UART_BRIDGE_PORT, 1024, 1024, 0, NULL, 0);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Error instalando driver UART: %s", esp_err_to_name(err));
+        return err;
+    }
+
+    err = uart_param_config(UART_BRIDGE_PORT, &config);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Error configurando UART: %s", esp_err_to_name(err));
+        return err;
+    }
+
+    err = uart_set_pin(UART_BRIDGE_PORT, UART_BRIDGE_TX_PIN, UART_BRIDGE_RX_PIN,
+                        UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Error asignando pines UART: %s", esp_err_to_name(err));
+        return err;
+    }
+
+    s_initialized = true;
+    ESP_LOGI(TAG, "UART bridge listo en TX=%d RX=%d @ %d baud",
+             UART_BRIDGE_TX_PIN, UART_BRIDGE_RX_PIN, UART_BRIDGE_BAUD);
+
+    /* Tarea de recepcion: lee lo que llega del modulo C6. Distingue dos cosas:
+     *  - texto (por ejemplo "ACK_C6\n"): se muestra en el log como antes.
+     *  - tramas [0xAA][tipo][len][payload][chk][0x55]: se validan y se
+     *    entregan al callback registrado (p. ej. sincronizacion de idioma). */
+    xTaskCreate(uart_bridge_rx_task, "uart_bridge_rx", 4096, NULL, 5, NULL);
+
+    return ESP_OK;
+}
+
+static uint8_t calcular_checksum(uint8_t tipo, uint8_t len, const uint8_t *payload)
+{
+    uint8_t chk = tipo ^ len;
+    for (uint8_t i = 0; i < len; i++) {
+        chk ^= payload[i];
+    }
+    return chk;
+}
+
+typedef enum {
+    RX_IDLE,
+    RX_TIPO,
+    RX_LEN,
+    RX_PAYLOAD,
+    RX_CHK,
+    RX_END
+} rx_state_t;
+
+static void uart_bridge_rx_task(void *pvParameters)
+{
+    uint8_t buf[64];
+    uint8_t payload[MAX_PAYLOAD];
+    char line[96];
+    size_t line_len = 0;
+
+    rx_state_t st = RX_IDLE;
+    uint8_t tipo = 0, len = 0, idx = 0;
+
+    while (1) {
+        int n = uart_read_bytes(UART_BRIDGE_PORT, buf, sizeof(buf), 100 / portTICK_PERIOD_MS);
+        for (int i = 0; i < n; i++) {
+            uint8_t b = buf[i];
+
+            switch (st) {
+            case RX_IDLE:
+                if (b == FRAME_START) {
+                    st = RX_TIPO;
+                } else if (b == '\n' || b == '\r') {
+                    if (line_len > 0) {
+                        line[line_len] = '\0';
+                        ESP_LOGI(TAG, "Recibido del C6 (%d bytes): %s", (int)line_len, line);
+                        line_len = 0;
+                    }
+                } else if (b >= 0x20 && b < 0x7F && line_len < sizeof(line) - 1) {
+                    line[line_len++] = (char)b;
+                }
+                break;
+
+            case RX_TIPO:
+                tipo = b;
+                st = RX_LEN;
+                break;
+
+            case RX_LEN:
+                len = b;
+                idx = 0;
+                if (len > MAX_PAYLOAD) {
+                    ESP_LOGW(TAG, "Trama entrante con len invalido (%d), descartada", len);
+                    st = RX_IDLE;
+                } else {
+                    st = (len == 0) ? RX_CHK : RX_PAYLOAD;
+                }
+                break;
+
+            case RX_PAYLOAD:
+                payload[idx++] = b;
+                if (idx >= len) st = RX_CHK;
+                break;
+
+            case RX_CHK:
+                if (b == calcular_checksum(tipo, len, payload)) {
+                    st = RX_END;
+                } else {
+                    ESP_LOGW(TAG, "Trama entrante con checksum invalido (tipo=0x%02X)", tipo);
+                    st = RX_IDLE;
+                }
+                break;
+
+            case RX_END:
+                if (b == FRAME_END) {
+                    ESP_LOGI(TAG, "Trama recibida (tipo=0x%02X, %d bytes de payload)", tipo, len);
+                    if (s_frame_cb) s_frame_cb(tipo, payload, len);
+                    /* Perfil del lanzador (0x14 quitar / 0x15 datos): callback aparte,
+                     * sin alterar lo que ya recibe s_frame_cb. */
+                    if (s_perfil_cb && (tipo == UART_MSG_QUITAR_PERFIL || tipo == UART_MSG_PERFIL_DATOS)) {
+                        s_perfil_cb(tipo, payload, len);
+                    }
+                } else {
+                    ESP_LOGW(TAG, "Trama entrante sin byte de fin (tipo=0x%02X)", tipo);
+                }
+                st = RX_IDLE;
+                break;
+            }
+        }
+    }
+}
+
+esp_err_t uart_bridge_send_frame(uint8_t tipo, const uint8_t *payload, uint8_t len)
+{
+    if (!s_initialized) {
+        ESP_LOGE(TAG, "uart_bridge_send_frame llamado antes de init");
+        return ESP_ERR_INVALID_STATE;
+    }
+    if (len > MAX_PAYLOAD) {
+        ESP_LOGE(TAG, "Payload demasiado grande: %d bytes", len);
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    /* Buffer temporal: start + tipo + len + payload + checksum + end */
+    uint8_t frame[3 + MAX_PAYLOAD + 2];
+    size_t idx = 0;
+
+    frame[idx++] = FRAME_START;
+    frame[idx++] = tipo;
+    frame[idx++] = len;
+    memcpy(&frame[idx], payload, len);
+    idx += len;
+    frame[idx++] = calcular_checksum(tipo, len, payload);
+    frame[idx++] = FRAME_END;
+
+    int written = uart_write_bytes(UART_BRIDGE_PORT, (const char *)frame, idx);
+    if (written != (int)idx) {
+        ESP_LOGE(TAG, "Error enviando trama: escritos %d de %d bytes", written, (int)idx);
+        return ESP_FAIL;
+    }
+
+    ESP_LOGI(TAG, "Trama enviada (tipo=0x%02X, %d bytes de payload)", tipo, len);
+    return ESP_OK;
+}
+
+esp_err_t uart_bridge_send_wifi(bool encender)
+{
+    uint8_t payload = encender ? 1 : 0;
+    return uart_bridge_send_frame(UART_MSG_WIFI, &payload, 1);
+}
+
+esp_err_t uart_bridge_send_bluetooth(bool encender)
+{
+    uint8_t payload = encender ? 1 : 0;
+    return uart_bridge_send_frame(UART_MSG_BLUETOOTH, &payload, 1);
+}

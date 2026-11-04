@@ -1,0 +1,895 @@
+// lib/widgets/vivo_widgets.dart
+//
+// Widgets de presentacion para la pantalla de JUEGO EN VIVO, siguiendo el
+// diseno "Entrenador - Pantalla de Juego en Vivo (movil)".
+// No tocan la base de datos: reciben los datos por parametros y avisan con
+// callbacks. Para verlos primero solos, usa VivoPantallaDemo al final.
+//
+// Fuente opcional: "Barlow Condensed" (titulos). Si no la declaras en el
+// pubspec.yaml, Flutter usa la fuente por defecto y todo sigue funcionando.
+
+import 'package:flutter/material.dart';
+
+class VivoColores {
+  VivoColores._();
+  static const fondo = Color(0xFF14171C);
+  static const tarjeta = Color(0xFF1D2229);
+  static const borde = Color(0xFF2A323C);
+  static const bordeSuave = Color(0xFF3A4552);
+  static const texto = Color(0xFFE8EDF2);
+  static const apagado = Color(0xFF8B96A3);
+  static const acento = Color(0xFF0ABDCF);
+  static const naranja = Color(0xFFE36F10);
+}
+
+const String _fuenteTitulo = 'Barlow Condensed';
+
+TextStyle _estiloTitulo(double size,
+    {Color color = VivoColores.texto, double spacing = 0}) {
+  return TextStyle(
+    fontFamily: _fuenteTitulo,
+    fontWeight: FontWeight.w700,
+    fontSize: size,
+    color: color,
+    letterSpacing: spacing,
+  );
+}
+
+const TextStyle _estiloEtiqueta =
+    TextStyle(fontSize: 11, letterSpacing: 1, color: VivoColores.apagado);
+
+// ---------------------------------------------------------------------------
+// Encabezado: punto naranja + "EN VIVO \u00B7 \u25B2 5" + boton de menu
+// ---------------------------------------------------------------------------
+class VivoEncabezado extends StatelessWidget {
+  final String texto;
+  final VoidCallback? onMenu;
+  const VivoEncabezado({super.key, required this.texto, this.onMenu});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 36,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                decoration: const BoxDecoration(
+                  color: VivoColores.naranja,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(texto, style: _estiloTitulo(22, spacing: 1)),
+            ],
+          ),
+          if (onMenu != null)
+            SizedBox(
+              width: 44,
+              height: 36,
+              child: OutlinedButton(
+                onPressed: onMenu,
+                style: OutlinedButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  foregroundColor: VivoColores.texto,
+                  side: const BorderSide(color: VivoColores.borde),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text('\u2261', style: TextStyle(fontSize: 18)),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Marcador por entradas (RIV arriba, NOS abajo) con R / H / E
+// ---------------------------------------------------------------------------
+class VivoLinescore extends StatelessWidget {
+  /// Carreras por entrada; null = entrada todavia no jugada (se ve "\u2013").
+  final List<int?> riv;
+  final List<int?> nos;
+  final int entradaActual;
+
+  /// true si el rival esta al bate (resalta su carrera de la entrada actual).
+  final bool batearRival;
+  final int? hRiv, eRiv, hNos, eNos;
+  final int entradasMin;
+
+  const VivoLinescore({
+    super.key,
+    required this.riv,
+    required this.nos,
+    required this.entradaActual,
+    required this.batearRival,
+    this.hRiv,
+    this.eRiv,
+    this.hNos,
+    this.eNos,
+    this.entradasMin = 9,
+  });
+
+  static int _suma(List<int?> l) => l.fold<int>(0, (a, b) => a + (b ?? 0));
+
+  Widget _celda(
+    String t, {
+    Color color = VivoColores.texto,
+    Color? fondo,
+    bool negrita = false,
+    bool izquierda = false,
+  }) {
+    return Container(
+      height: 26,
+      color: fondo,
+      alignment: izquierda ? Alignment.centerLeft : Alignment.center,
+      padding: izquierda ? const EdgeInsets.only(left: 6) : null,
+      child: Text(
+        t,
+        style: TextStyle(
+          fontFamily: _fuenteTitulo,
+          fontSize: 15,
+          color: color,
+          fontWeight: negrita ? FontWeight.w700 : FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final n = riv.length > nos.length ? riv.length : nos.length;
+    final cols = n < entradasMin ? entradasMin : n;
+
+    TableRow cabecera() {
+      return TableRow(children: [
+        _celda(''),
+        for (var i = 0; i < cols; i++)
+          _celda(
+            '${i + 1}',
+            color: i + 1 == entradaActual
+                ? VivoColores.fondo
+                : VivoColores.apagado,
+            fondo: i + 1 == entradaActual ? VivoColores.acento : null,
+          ),
+        _celda('R', color: VivoColores.acento),
+        _celda('H', color: VivoColores.acento),
+        _celda('E', color: VivoColores.acento),
+      ]);
+    }
+
+    TableRow fila(String nombre, Color colorNombre, List<int?> v,
+        bool bateando, int? h, int? e) {
+      return TableRow(children: [
+        _celda(nombre, color: colorNombre, negrita: true, izquierda: true),
+        for (var i = 0; i < cols; i++)
+          () {
+            final valor = i < v.length ? v[i] : null;
+            final actual = bateando && i == entradaActual - 1;
+            return _celda(
+              valor == null ? '\u2013' : '$valor',
+              color: valor == null
+                  ? VivoColores.apagado
+                  : (actual ? VivoColores.naranja : VivoColores.texto),
+              negrita: actual,
+            );
+          }(),
+        _celda('${_suma(v)}', negrita: true),
+        _celda(h == null ? '\u2013' : '$h'),
+        _celda(e == null ? '\u2013' : '$e'),
+      ]);
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: VivoColores.acento, width: 2),
+      ),
+      child: Table(
+        border: TableBorder.all(color: VivoColores.borde),
+        columnWidths: {
+          0: const FixedColumnWidth(52),
+          for (var i = 1; i <= cols; i++) i: const FlexColumnWidth(),
+          cols + 1: const FixedColumnWidth(24),
+          cols + 2: const FixedColumnWidth(24),
+          cols + 3: const FixedColumnWidth(24),
+        },
+        children: [
+          cabecera(),
+          fila('RIV', VivoColores.texto, riv, batearRival, hRiv, eRiv),
+          fila('NOS', VivoColores.acento, nos, !batearRival, hNos, eNos),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Tarjeta de lanzador / bateador
+// ---------------------------------------------------------------------------
+class VivoTarjeta extends StatelessWidget {
+  final String etiqueta; // LANZADOR / BATEADOR (RIV)
+  final String titulo; // #34 \u00B7 Nombre Apellido
+  final String detalle; // 63 lanzamientos \u00B7 4.0 IP
+  const VivoTarjeta({
+    super.key,
+    required this.etiqueta,
+    required this.titulo,
+    required this.detalle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: VivoColores.tarjeta,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: VivoColores.borde),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(etiqueta, style: _estiloEtiqueta),
+          Text(
+            titulo,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: _estiloTitulo(19),
+          ),
+          Text(
+            detalle,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 12, color: VivoColores.apagado),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Cuenta: bolas, strikes y outs (\u25CF\u25CF\u25CB)
+// ---------------------------------------------------------------------------
+class VivoCuenta extends StatelessWidget {
+  final int bolas;
+  final int strikes;
+  final int outs;
+  const VivoCuenta({
+    super.key,
+    required this.bolas,
+    required this.strikes,
+    required this.outs,
+  });
+
+  Widget _dato(String etiqueta, String valor,
+      {Color color = VivoColores.texto}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(etiqueta, style: _estiloEtiqueta),
+        Text(valor, style: _estiloTitulo(30, color: color).copyWith(height: 1)),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final o = outs < 0 ? 0 : (outs > 3 ? 3 : outs);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _dato('BOLAS', '$bolas'),
+        const SizedBox(height: 10),
+        _dato('STRIKES', '$strikes', color: VivoColores.naranja),
+        const SizedBox(height: 10),
+        const Text('OUTS', style: _estiloEtiqueta),
+        Text(
+          '\u25CF' * o + '\u25CB' * (3 - o),
+          style: const TextStyle(
+            fontSize: 22,
+            letterSpacing: 4,
+            color: VivoColores.acento,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Zona de strike 3x3 con marcas numeradas (orden de los lanzamientos)
+// Zonas 1..9, de izquierda a derecha y de arriba hacia abajo.
+// ---------------------------------------------------------------------------
+class VivoMarca {
+  final int zona;
+  final int numero;
+  final Color color;
+  const VivoMarca(this.zona, this.numero, this.color);
+}
+
+class VivoZonaStrike extends StatelessWidget {
+  final List<VivoMarca> marcas;
+  final ValueChanged<int>? onZona;
+  const VivoZonaStrike({super.key, this.marcas = const [], this.onZona});
+
+  Widget _celda(int zona) {
+    return Expanded(
+      child: InkWell(
+        onTap: onZona == null ? null : () => onZona!(zona),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: VivoColores.borde),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final porZona = <int, int>{};
+    final circulos = <Widget>[];
+    for (final m in marcas) {
+      if (m.zona < 1 || m.zona > 9) continue;
+      final k = porZona[m.zona] ?? 0;
+      porZona[m.zona] = k + 1;
+      final fila = (m.zona - 1) ~/ 3;
+      final col = (m.zona - 1) % 3;
+      final desplazamiento = k * 6.0;
+      circulos.add(
+        Positioned(
+          left: 28.0 + col * 40 + 9 + desplazamiento,
+          top: 28.0 + fila * 40 + 9 + desplazamiento,
+          child: IgnorePointer(
+            child: Container(
+              width: 22,
+              height: 22,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(color: m.color, shape: BoxShape.circle),
+              child: Text(
+                '${m.numero}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: VivoColores.fondo,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: 176,
+      height: 176,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: VivoColores.bordeSuave),
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 28,
+            top: 28,
+            width: 120,
+            height: 120,
+            child: Material(
+              type: MaterialType.transparency,
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: VivoColores.acento, width: 2),
+                ),
+                child: Column(
+                  children: [
+                    for (var r = 0; r < 3; r++)
+                      Expanded(
+                        child: Row(
+                          children: [
+                            for (var c = 0; c < 3; c++) _celda(r * 3 + c + 1),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          ...circulos,
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Diamante con los corredores en base
+// ---------------------------------------------------------------------------
+class VivoDiamante extends StatelessWidget {
+  final bool primera;
+  final bool segunda;
+  final bool tercera;
+  final String nota; // ej. "1\u00AA y 3\u00AA\nBate zurdo"
+  const VivoDiamante({
+    super.key,
+    required this.primera,
+    required this.segunda,
+    required this.tercera,
+    this.nota = '',
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 64,
+          height: 64,
+          child: CustomPaint(
+            painter: _DiamantePainter(primera, segunda, tercera),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          nota,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 11,
+            height: 1.2,
+            color: VivoColores.apagado,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DiamantePainter extends CustomPainter {
+  final bool b1, b2, b3;
+  _DiamantePainter(this.b1, this.b2, this.b3);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    void base(Offset c, bool ocupada) {
+      const d = 8.5;
+      final p = Path()
+        ..moveTo(c.dx, c.dy - d)
+        ..lineTo(c.dx + d, c.dy)
+        ..lineTo(c.dx, c.dy + d)
+        ..lineTo(c.dx - d, c.dy)
+        ..close();
+      final colorLinea = ocupada ? VivoColores.acento : VivoColores.apagado;
+      if (ocupada) {
+        canvas.drawPath(
+          p,
+          Paint()
+            ..color = VivoColores.acento
+            ..style = PaintingStyle.fill,
+        );
+      }
+      canvas.drawPath(
+        p,
+        Paint()
+          ..color = colorLinea
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
+    }
+
+    base(const Offset(32, 10), b2);
+    base(const Offset(52, 32), b1);
+    base(const Offset(12, 32), b3);
+    base(const Offset(32, 54), false); // home
+  }
+
+  @override
+  bool shouldRepaint(_DiamantePainter o) =>
+      o.b1 != b1 || o.b2 != b2 || o.b3 != b3;
+}
+
+// ---------------------------------------------------------------------------
+// Tipos de lanzamiento (chips con scroll horizontal) y secuencia del turno
+// ---------------------------------------------------------------------------
+class VivoChipsLanzamiento extends StatelessWidget {
+  final List<String> tipos;
+  final String? seleccionado;
+  final ValueChanged<String> onSeleccion;
+  final VoidCallback? onMas;
+  const VivoChipsLanzamiento({
+    super.key,
+    required this.tipos,
+    required this.seleccionado,
+    required this.onSeleccion,
+    this.onMas,
+  });
+
+  Widget _chip(String t) {
+    final sel = t == seleccionado;
+    return Padding(
+      padding: const EdgeInsets.only(right: 6),
+      child: Material(
+        color: sel ? VivoColores.acento : VivoColores.tarjeta,
+        shape: StadiumBorder(
+          side: BorderSide(
+            color: sel ? VivoColores.acento : VivoColores.borde,
+            width: sel ? 2 : 1,
+          ),
+        ),
+        child: InkWell(
+          customBorder: const StadiumBorder(),
+          onTap: () => onSeleccion(t),
+          child: Container(
+            constraints: const BoxConstraints(minWidth: 64),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            alignment: Alignment.center,
+            child: Text(
+              t,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: sel ? FontWeight.w600 : FontWeight.w400,
+                color: sel ? VivoColores.fondo : VivoColores.texto,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 44,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          for (final t in tipos) _chip(t),
+          if (onMas != null)
+            SizedBox(
+              width: 44,
+              child: OutlinedButton(
+                onPressed: onMas,
+                style: OutlinedButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  foregroundColor: VivoColores.apagado,
+                  side: const BorderSide(color: VivoColores.apagado),
+                  shape: const StadiumBorder(),
+                ),
+                child: const Text('+', style: TextStyle(fontSize: 18)),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class VivoSecuencia extends StatelessWidget {
+  /// Ej.: ['1 Recta \u00B7 Bola', '2 Slider \u00B7 Strike']
+  final List<String> lanzamientos;
+  const VivoSecuencia({super.key, required this.lanzamientos});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 32,
+      child: Row(
+        children: [
+          const Text('TURNO', style: _estiloEtiqueta),
+          const SizedBox(width: 10),
+          Expanded(
+            child: lanzamientos.isEmpty
+                ? const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('\u2014',
+                        style: TextStyle(color: VivoColores.apagado)),
+                  )
+                : ListView(
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      for (final l in lanzamientos)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: Container(
+                            alignment: Alignment.center,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            decoration: BoxDecoration(
+                              color: VivoColores.tarjeta,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: VivoColores.borde),
+                            ),
+                            child: Text(l, style: const TextStyle(fontSize: 12)),
+                          ),
+                        ),
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Botones: rejilla de resultados (4 por fila), secundarios y principal
+// ---------------------------------------------------------------------------
+class VivoBotonResultado {
+  final String texto;
+  final Color? color; // null = neutro
+  final bool destacado; // borde grueso y negrita
+  final VoidCallback? onTap;
+  const VivoBotonResultado(
+    this.texto, {
+    this.color,
+    this.destacado = false,
+    this.onTap,
+  });
+}
+
+class VivoRejillaResultados extends StatelessWidget {
+  final List<VivoBotonResultado> botones;
+  const VivoRejillaResultados({super.key, required this.botones});
+
+  Widget _boton(VivoBotonResultado b) {
+    return SizedBox(
+      height: 46,
+      child: OutlinedButton(
+        onPressed: b.onTap,
+        style: OutlinedButton.styleFrom(
+          padding: EdgeInsets.zero,
+          backgroundColor: VivoColores.tarjeta,
+          foregroundColor: b.color ?? VivoColores.texto,
+          side: BorderSide(
+            color: b.color ?? VivoColores.borde,
+            width: b.destacado ? 2 : 1,
+          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+        child: Text(
+          b.texto,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: b.destacado ? FontWeight.w600 : FontWeight.w400,
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filas = <Widget>[];
+    for (var i = 0; i < botones.length; i += 4) {
+      if (i > 0) filas.add(const SizedBox(height: 6));
+      filas.add(
+        Row(
+          children: [
+            for (var j = i; j < i + 4; j++) ...[
+              if (j > i) const SizedBox(width: 6),
+              Expanded(
+                child: j < botones.length
+                    ? _boton(botones[j])
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+    return Column(children: filas);
+  }
+}
+
+class VivoBotonSecundario extends StatelessWidget {
+  final String texto;
+  final VoidCallback? onTap;
+  final bool apagado; // estilo "Deshacer": sin relleno y texto gris
+  const VivoBotonSecundario({
+    super.key,
+    required this.texto,
+    required this.onTap,
+    this.apagado = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 46,
+      child: OutlinedButton(
+        onPressed: onTap,
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          backgroundColor: apagado ? Colors.transparent : VivoColores.tarjeta,
+          foregroundColor: apagado ? VivoColores.apagado : VivoColores.texto,
+          side: const BorderSide(color: VivoColores.borde),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+        child: Text(texto, style: const TextStyle(fontSize: 14)),
+      ),
+    );
+  }
+}
+
+class VivoBotonPrincipal extends StatelessWidget {
+  final String texto;
+  final VoidCallback? onTap;
+  const VivoBotonPrincipal({super.key, required this.texto, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 52,
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: onTap,
+        style: ElevatedButton.styleFrom(
+          elevation: 0,
+          backgroundColor: VivoColores.acento,
+          foregroundColor: VivoColores.fondo,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        child: Text(texto, style: _estiloTitulo(20, color: VivoColores.fondo, spacing: 1)),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Pantalla de prueba con datos fijos, para ver el diseno antes de conectarlo
+// ---------------------------------------------------------------------------
+class VivoPantallaDemo extends StatelessWidget {
+  const VivoPantallaDemo({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: VivoColores.fondo,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              VivoEncabezado(texto: 'EN VIVO \u00B7 \u25B2 5', onMenu: () {}),
+              const SizedBox(height: 8),
+              const VivoLinescore(
+                riv: [0, 0, 1, 0, 2],
+                nos: [1, 0, 0, 2],
+                entradaActual: 5,
+                batearRival: true,
+                hRiv: 6,
+                eRiv: 0,
+                hNos: 5,
+                eNos: 1,
+              ),
+              const SizedBox(height: 8),
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: const [
+                    Expanded(
+                      child: VivoTarjeta(
+                        etiqueta: 'LANZADOR',
+                        titulo: '#34 \u00B7 Nombre Apellido',
+                        detalle: '63 lanzamientos \u00B7 4.0 IP \u00B7 ERA 2.45',
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: VivoTarjeta(
+                        etiqueta: 'BATEADOR (RIV)',
+                        titulo: '#7 \u00B7 Nombre Apellido',
+                        detalle: 'Zurdo \u00B7 AVG .312 \u00B7 1-2 hoy',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 188,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: const [
+                    SizedBox(
+                      width: 76,
+                      child: VivoCuenta(bolas: 2, strikes: 1, outs: 2),
+                    ),
+                    VivoZonaStrike(
+                      marcas: [
+                        VivoMarca(1, 1, VivoColores.apagado),
+                        VivoMarca(5, 2, VivoColores.naranja),
+                        VivoMarca(7, 3, VivoColores.acento),
+                      ],
+                    ),
+                    SizedBox(
+                      width: 76,
+                      child: VivoDiamante(
+                        primera: true,
+                        segunda: false,
+                        tercera: true,
+                        nota: '1\u00AA y 3\u00AA\nBate zurdo',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              VivoChipsLanzamiento(
+                tipos: const ['Recta', 'Slider', 'Cambio', 'Curva', 'Cutter'],
+                seleccionado: 'Slider',
+                onSeleccion: (_) {},
+                onMas: () {},
+              ),
+              const SizedBox(height: 8),
+              const VivoSecuencia(
+                lanzamientos: [
+                  '1 Recta \u00B7 Bola',
+                  '2 Slider \u00B7 Strike',
+                  '3 Recta \u00B7 Bola',
+                ],
+              ),
+              const SizedBox(height: 8),
+              VivoRejillaResultados(
+                botones: [
+                  VivoBotonResultado('Bola', onTap: () {}),
+                  VivoBotonResultado('Strike',
+                      color: VivoColores.naranja, destacado: true, onTap: () {}),
+                  VivoBotonResultado('Foul', onTap: () {}),
+                  VivoBotonResultado('Hit',
+                      color: VivoColores.acento, destacado: true, onTap: () {}),
+                  VivoBotonResultado('Out', onTap: () {}),
+                  VivoBotonResultado('Ponche', onTap: () {}),
+                  VivoBotonResultado('Base', onTap: () {}),
+                  VivoBotonResultado('Error', onTap: () {}),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: VivoBotonSecundario(
+                      texto: 'Jugada de corredores',
+                      onTap: () {},
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  SizedBox(
+                    width: 96,
+                    child: VivoBotonSecundario(
+                      texto: '\u21B6 Deshacer',
+                      apagado: true,
+                      onTap: () {},
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              VivoBotonPrincipal(
+                texto: 'ENVIAR JUGADA A LA PANTALLA',
+                onTap: () {},
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -1,0 +1,125 @@
+[1/7] LittleFS OTA: Dynamically finding and preparing newest firmware
+-- LittleFS: Dynamically searching for newest firmware...
+-- LittleFS: Searching in C:/Tesis/Entrenador/Out/Entrenador_P4_C6_OTA/components/ota_littlefs/slave_fw_bin
+-- LittleFS: File C:/Tesis/Entrenador/Out/Entrenador_P4_C6_OTA/components/ota_littlefs/slave_fw_bin/network_adapter.bin timestamp: 1775103236
+-- LittleFS: Selected newest firmware: network_adapter.bin
+-- LittleFS: Prepared network_adapter.bin in temp directory for LittleFS
+-- LittleFS: Firmware selection completed
+[2/7] C:\WINDOWS\system32\cmd.exe /C "cd /D C:\Tesis\Entrenador\Out\Entrenador_P4_C6_OTA\build\esp-idf\esptool_py && C:\Espressif\tools\python\v5.4.4\venv\Scripts\python.exe C:/esp/v5.4.4/esp-idf/components/partition_table/check_sizes.py --offset 0x8000 partition --type app C:/Tesis/Entrenador/Out/Entrenador_P4_C6_OTA/build/partition_table/partition-table.bin C:/Tesis/Entrenador/Out/Entrenador_P4_C6_OTA/build/host_performs_slave_ota.bin"
+host_performs_slave_ota.bin binary size 0x9ba90 bytes. Smallest app partition is 0x200000 bytes. 0x164570 bytes (70%) free.
+[3/7] Performing build step for 'bootloader'
+[1/1] C:\WINDOWS\system32\cmd.exe /C "cd /D C:\Tesis\Entrenador\Out\Entrenador_P4_C6_OTA\build\bootloader\esp-idf\esptool_py && C:\Espressif\tools\python\v5.4.4\venv\Scripts\python.exe C:/esp/v5.4.4/esp-idf/components/partition_table/check_sizes.py --offset 0x8000 bootloader 0x2000 C:/Tesis/Entrenador/Out/Entrenador_P4_C6_OTA/build/bootloader/bootloader.bin"
+Bootloader binary size 0x5890 bytes. 0x770 bytes (8%) free.
+[4/7] No install step for 'bootloader'
+[5/7] C:\WINDOWS\system32\cmd.exe /C "cd /D C:\Tesis\Entrenador\Out\Entrenador_P4_C6_OTA\build\esp-idf\ota_littlefs && C:\Tesis\Entrenador\Out\Entrenador_P4_C6_OTA\build\littlefs_py_venv\Scripts\littlefs-python.exe create C:/Tesis/Entrenador/Out/Entrenador_P4_C6_OTA/build/esp-idf/ota_littlefs/temp_littlefs C:/Tesis/Entrenador/Out/Entrenador_P4_C6_OTA/build/storage.bin -v --fs-size=0x1e0000 --name-max=64 --block-size=4096"
+LittleFS Configuration:
+  Block Size:       4096  /  0x1000
+  Image Size:    1966080  /  0x1E0000
+  Block Count:       480
+  Name Max:           64
+  Image:       C:\Tesis\Entrenador\Out\Entrenador_P4_C6_OTA\build\storage.bin
+Adding File:      network_adapter.bin
+[6/7] Completed 'bootloader'
+[6/7] C:\WINDOWS\system32\cmd.exe /C "cd /D C:\esp\v5.4.4\esp-idf\components\esptool_py && C:\Espressif\tools\cmake\3.30.2\bin\cmake.exe -D IDF_PATH=C:/esp/v5.4.4/esp-idf -D SERIAL_TOOL=C:/Espressif/tools/python/v5.4.4/venv/Scripts/python.exe;;C:/esp/v5.4.4/esp-idf/components/esptool_py/esptool/esptool.py;--chip;esp32p4 -D SERIAL_TOOL_ARGS=--before=default_reset;--after=hard_reset;write_flash;@flash_args -D WORKING_DIRECTORY=C:/Tesis/Entrenador/Out/Entrenador_P4_C6_OTA/build -P C:/esp/v5.4.4/esp-idf/components/esptool_py/run_serial_tool.cmake"
+esptool.py --chip esp32p4 -p COM20 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 80m --flash_size 8MB 0x2000 bootloader/bootloader.bin 0x10000 host_performs_slave_ota.bin 0x8000 partition_table/partition-table.bin 0xd000 ota_data_initial.bin 0x410000 storage.bin
+esptool.py v4.12.0
+Serial port COM20
+Connecting....
+Chip is ESP32-P4 (revision v1.3)
+Features: High-Performance MCU
+Crystal is 40MHz
+MAC: e8:f6:0a:e1:d6:c8
+Uploading stub...
+Running stub...
+Stub running...
+Changing baud rate to 460800
+Changed.
+Configuring flash size...
+Flash will be erased from 0x00002000 to 0x00007fff...
+Flash will be erased from 0x00010000 to 0x000abfff...
+Flash will be erased from 0x00008000 to 0x00008fff...
+Flash will be erased from 0x0000d000 to 0x0000efff...
+Flash will be erased from 0x00410000 to 0x005effff...
+SHA digest in image updated
+Compressed 22672 bytes to 13941...
+Writing at 0x00002000... (100 %)
+Wrote 22672 bytes (13941 compressed) at 0x00002000 in 0.6 seconds (effective 285.1 kbit/s)...
+Hash of data verified.
+Compressed 637584 bytes to 283537...
+Writing at 0x00010000... (5 %)
+Writing at 0x0001f2c9... (11 %)
+Writing at 0x0002c07d... (16 %)
+Writing at 0x0003d2e9... (22 %)
+Writing at 0x00045911... (27 %)
+Writing at 0x0004c889... (33 %)
+Writing at 0x00053900... (38 %)
+Writing at 0x0005b17a... (44 %)
+Writing at 0x000652d1... (50 %)
+Writing at 0x0006e1de... (55 %)
+Writing at 0x000770e2... (61 %)
+Writing at 0x0007d92b... (66 %)
+Writing at 0x00084d4e... (72 %)
+Writing at 0x0008bf6e... (77 %)
+Writing at 0x00092d19... (83 %)
+Writing at 0x0009a1d9... (88 %)
+Writing at 0x000a0729... (94 %)
+Writing at 0x000a8455... (100 %)
+Wrote 637584 bytes (283537 compressed) at 0x00010000 in 7.6 seconds (effective 675.5 kbit/s)...
+Hash of data verified.
+Compressed 3072 bytes to 158...
+Writing at 0x00008000... (100 %)
+Wrote 3072 bytes (158 compressed) at 0x00008000 in 0.1 seconds (effective 393.1 kbit/s)...
+Hash of data verified.
+Compressed 8192 bytes to 31...
+Writing at 0x0000d000... (100 %)
+Wrote 8192 bytes (31 compressed) at 0x0000d000 in 0.1 seconds (effective 574.5 kbit/s)...
+Hash of data verified.
+Compressed 1966080 bytes to 704388...
+Writing at 0x00410000... (2 %)
+Writing at 0x004176f5... (4 %)
+Writing at 0x0041d5cc... (6 %)
+Writing at 0x00423a9d... (9 %)
+Writing at 0x0042a441... (11 %)
+Writing at 0x004302f1... (13 %)
+Writing at 0x00436448... (16 %)
+Writing at 0x0043c558... (18 %)
+Writing at 0x00442261... (20 %)
+Writing at 0x004482af... (23 %)
+Writing at 0x0044daee... (25 %)
+Writing at 0x0045323f... (27 %)
+Writing at 0x00458aba... (30 %)
+Writing at 0x0045e72d... (32 %)
+Writing at 0x00464e12... (34 %)
+Writing at 0x0046abf0... (37 %)
+Writing at 0x00470c66... (39 %)
+Writing at 0x00476a13... (41 %)
+Writing at 0x0047c5b3... (44 %)
+Writing at 0x00482ff4... (46 %)
+Writing at 0x00545617... (48 %)
+Writing at 0x0055416b... (51 %)
+Writing at 0x00560e39... (53 %)
+Writing at 0x0056e569... (55 %)
+Writing at 0x00578c27... (58 %)
+Writing at 0x0057ee00... (60 %)
+Writing at 0x0058512a... (62 %)
+Writing at 0x0058c4cb... (65 %)
+Writing at 0x005963ad... (67 %)
+Writing at 0x0059cbb2... (69 %)
+Writing at 0x005a2c53... (72 %)
+Writing at 0x005a8bca... (74 %)
+Writing at 0x005af1c1... (76 %)
+Writing at 0x005b518e... (79 %)
+Writing at 0x005bb626... (81 %)
+Writing at 0x005c1559... (83 %)
+Writing at 0x005c76cb... (86 %)
+Writing at 0x005cd513... (88 %)
+Writing at 0x005d3ba9... (90 %)
+Writing at 0x005d9992... (93 %)
+Writing at 0x005df2e9... (95 %)
+Writing at 0x005e4c17... (97 %)
+Writing at 0x005ea59b... (100 %)
+Wrote 1966080 bytes (704388 compressed) at 0x00410000 in 20.5 seconds (effective 767.1 kbit/s)...
+Hash of data verified.
+
+Leaving...
+Hard resetting via RTS pin...

@@ -1,0 +1,10 @@
+# Name,     Type, SubType,  Offset,   Size,     Flags
+# Tabla custom para el modulo Wireless C6 (flash de 2MB, CONFIG_ESPTOOLPY_FLASHSIZE=2MB).
+# La tabla "single_app" por defecto de ESP-IDF deja la app en ~1MB, lo cual
+# ya no alcanza al sumar WiFi + ESP-NOW + NimBLE. Esta tabla usa practicamente
+# los 2MB completos para la app (nvs + phy_init igual que el default, el resto
+# entero para "factory"). Sin particion OTA: si mas adelante quieres actualizar
+# por OTA hay que rehacer la tabla con dos slots "ota_0"/"ota_1" mas chicos.
+nvs,      data, nvs,     0x9000,  0x6000,
+phy_init, data, phy,     0xf000,  0x1000,
+factory,  app,  factory, 0x10000, 0x1F0000,

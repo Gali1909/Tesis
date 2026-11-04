@@ -1,0 +1,127 @@
+ESP-ROM:esp32p4-eco2-20240710
+Build:Jul 10 2024
+rst:0x1 (POWERON),boot:0x31f (SPI_FAST_FLASH_BOOT)
+SPI mode:DIO, clock div:1
+load:0x4ff33ce0,len:0x1674
+load:0x4ff2abd0,len:0xe7c
+load:0x4ff2cbd0,len:0x3344
+entry 0x4ff2abda
+[0;32mI (25) boot: ESP-IDF v5.4.4 2nd stage bootloader[0m
+[0;32mI (26) boot: compile time Aug 25 2026 19:55:07[0m
+[0;32mI (26) boot: Multicore bootloader[0m
+[0;32mI (27) boot: chip revision: v1.3[0m
+[0;32mI (29) boot: efuse block revision: v0.3[0m
+[0;32mI (32) boot.esp32p4: SPI Speed      : 80MHz[0m
+[0;32mI (36) boot.esp32p4: SPI Mode       : DIO[0m
+[0;32mI (40) boot.esp32p4: SPI Flash Size : 8MB[0m
+[0;32mI (44) boot: Enabling RNG early entropy source...[0m
+[0;32mI (48) boot: Partition Table:[0m
+[0;32mI (51) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (57) boot:  0 nvs              WiFi data        01 02 00009000 00004000[0m
+[0;32mI (63) boot:  1 otadata          OTA data         01 00 0000d000 00002000[0m
+[0;32mI (70) boot:  2 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (77) boot:  3 ota_0            OTA app          00 10 00010000 00200000[0m
+[0;32mI (83) boot:  4 ota_1            OTA app          00 11 00210000 00200000[0m
+[0;32mI (90) boot:  5 storage          Unknown data     01 83 00410000 001e0000[0m
+[0;32mI (96) boot:  6 slave_fw         Unknown data     01 40 005f0000 00200000[0m
+[0;32mI (104) boot: End of partition table[0m
+[0;32mI (107) esp_image: segment 0: paddr=00010020 vaddr=40060020 size=31ed8h (204504) map[0m
+[0;32mI (149) esp_image: segment 1: paddr=00041f00 vaddr=30100000 size=00044h (    68) load[0m
+[0;32mI (150) esp_image: segment 2: paddr=00041f4c vaddr=4ff00000 size=0e0cch ( 57548) load[0m
+[0;32mI (165) esp_image: segment 3: paddr=00050020 vaddr=40000020 size=56df4h (355828) map[0m
+[0;32mI (225) esp_image: segment 4: paddr=000a6e1c vaddr=4ff0e0cc size=04c44h ( 19524) load[0m
+[0;32mI (234) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (234) boot: Disabling RNG early entropy source...[0m
+[0;32mI (246) cpu_start: Multicore app[0m
+[0;32mI (256) cpu_start: GPIO 38 and 37 are used as console UART I/O pins[0m
+[0;32mI (256) cpu_start: Pro cpu start user code[0m
+[0;32mI (256) cpu_start: cpu freq: 360000000 Hz[0m
+[0;32mI (258) app_init: Application information:[0m
+[0;32mI (262) app_init: Project name:     host_performs_slave_ota[0m
+[0;32mI (267) app_init: App version:      1[0m
+[0;32mI (270) app_init: Compile time:     Aug 25 2026 19:54:14[0m
+[0;32mI (275) app_init: ELF file SHA256:  c1ad999a8...[0m
+[0;32mI (280) app_init: ESP-IDF:          v5.4.4[0m
+[0;32mI (284) efuse_init: Min chip rev:     v0.1[0m
+[0;32mI (287) efuse_init: Max chip rev:     v1.99 [0m
+[0;32mI (291) efuse_init: Chip rev:         v1.3[0m
+[0;32mI (295) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (302) heap_init: At 4FF14CC0 len 00026300 (152 KiB): RETENT_RAM[0m
+[0;32mI (307) heap_init: At 4FF3AFC0 len 00004BF0 (18 KiB): RAM[0m
+[0;32mI (312) heap_init: At 4FF40000 len 00060000 (384 KiB): RAM[0m
+[0;32mI (318) heap_init: At 50108080 len 00007F80 (31 KiB): RTCRAM[0m
+[0;32mI (323) heap_init: At 30100044 len 00001FBC (7 KiB): TCM[0m
+[0;32mI (329) spi_flash: detected chip: generic[0m
+[0;32mI (332) spi_flash: flash io: dio[0m
+[0;33mW (335) spi_flash: Detected size(16384k) larger than the size in the binary image header(8192k). Using the size in the binary image header.[0m
+[0;32mI (347) host_init: ESP Hosted : Host chip_ip[18][0m
+[0;32mI (351) H_API: ESP-Hosted starting. Hosted_Tasks: prio:23, stack: 5120 RPC_task_stack: 5120[0m
+[0;32mI (359) H_API: ** add_esp_wifi_remote_channels **[0m
+[0;32mI (365) gpio: GPIO[18]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 [0m
+[0;32mI (372) gpio: GPIO[19]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 [0m
+[0;32mI (381) gpio: GPIO[17]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 [0m
+[0;32mI (389) gpio: GPIO[16]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 [0m
+[0;32mI (397) gpio: GPIO[15]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 [0m
+[0;32mI (406) gpio: GPIO[14]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 [0m
+[0;32mI (415) sleep_gpio: Configure to isolate all GPIO pins in sleep state[0m
+[0;32mI (420) sleep_gpio: Enable automatic switching of GPIO sleep configuration[0m
+[0;32mI (427) H_SDIO_DRV: sdio_data_to_rx_buf_task started[0m
+[0;32mI (431) main_task: Started on CPU0[0m
+[0;32mI (435) main_task: Calling app_main()[0m
+[0;32mI (438) host_performs_slave_ota: Initializing ESP-Hosted...[0m
+[0;32mI (449) H_API: ESP-Hosted Try to communicate with ESP-Hosted slave[0m
+
+[0;32mI (449) transport: Attempt connection with slave: retry[0][0m
+[0;33mW (454) H_SDIO_DRV: Reset slave using GPIO[32][0m
+[0;32mI (459) os_wrapper_esp: GPIO [32] configured[0m
+[0;32mI (463) gpio: GPIO[32]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 [0m
+[0;32mI (1991) sdio_wrapper: SDIO master: Slot 1, Data-Lines: 4-bit Freq(KHz)[40000 KHz][0m
+[0;32mI (1991) sdio_wrapper: GPIOs: CLK[18] CMD[19] D0[17] D1[16] D2[15] D3[14] Slave_Reset[32][0m
+[0;32mI (1995) sdio_wrapper: Queues: Tx[20] Rx[20] SDIO-Rx-Mode[1][0m
+[0;32mI (2032) gpio: GPIO[16]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 [0m
+[0;32mI (2034) gpio: GPIO[14]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 [0m
+[0;32mI (2038) sdio_wrapper: Function 0 Blocksize: 512[0m
+[0;32mI (2042) sdio_wrapper: Function 1 Blocksize: 512[0m
+[0;32mI (2146) H_SDIO_DRV: Card init success, TRANSPORT_RX_ACTIVE[0m
+[0;32mI (2146) transport: set_transport_state: 1[0m
+[0;32mI (2146) transport: Waiting for esp_hosted slave to be ready[0m
+[0;32mI (2227) H_SDIO_DRV: SDIO Host operating in STREAMING MODE[0m
+[0;32mI (2227) H_SDIO_DRV: Open data path at slave[0m
+[0;32mI (2227) H_SDIO_DRV: Starting SDIO process rx task[0m
+[0;32mI (2254) H_SDIO_DRV: Received ESP_PRIV_IF type message[0m
+[0;32mI (2254) transport: Received INIT event from ESP32 peripheral[0m
+[0;32mI (2255) transport: EVENT: 12[0m
+[0;32mI (2256) transport: Identified slave [esp32c6][0m
+[0;32mI (2260) transport: SDIO mode: slave: streaming, host: streaming[0m
+[0;32mI (2266) transport: EVENT: 11[0m
+[0;32mI (2269) transport: capabilities: 0xd[0m
+[0;32mI (2272) transport: Features supported are:[0m
+[0;32mI (2276) transport: 	 * WLAN[0m
+[0;32mI (2279) transport: 	   - HCI over SDIO[0m
+[0;32mI (2282) transport: 	   - BLE only[0m
+[0;32mI (2285) transport: EVENT: 13[0m
+[0;32mI (2288) transport: ESP board type is : 13 [0m
+
+[0;32mI (2292) transport: Base transport is set-up, TRANSPORT_TX_ACTIVE[0m
+[0;32mI (2298) H_API: Transport active[0m
+[0;32mI (2301) transport: Slave chip Id[12][0m
+[0;32mI (2304) transport: raw_tp_dir[-], flow_ctrl: low[60] high[80][0m
+[0;32mI (2310) transport: transport_delayed_init[0m
+[0;32mI (2314) esp_cli: Registering command: crash[0m
+[0;32mI (2318) esp_cli: Registering command: reboot[0m
+[0;32mI (2322) esp_cli: Registering command: mem-dump[0m
+[0;32mI (2326) esp_cli: Registering command: task-dump[0m
+[0;32mI (2331) esp_cli: Registering command: cpu-dump[0m
+[0;32mI (2335) esp_cli: Registering command: heap-trace[0m
+[0;32mI (2339) esp_cli: Registering command: sock-dump[0m
+[0;32mI (2344) esp_cli: Registering command: host-power-save[0m
+[0;32mI (2348) hci_stub_drv: Host BT Support: Disabled[0m
+[0;32mI (2349) host_performs_slave_ota: ESP-Hosted initialized successfully[0m
+[0;32mI (2353) H_SDIO_DRV: Received INIT event[0m
+[0;32mI (2363) H_SDIO_DRV: Event type: 0x22[0m
+[0;32mI (2366) H_SDIO_DRV: Write thread started[0m
+[0;32mI (2428) RPC_WRAP: Coprocessor Boot-up[0m
+[0;32mI (2433) host_performs_slave_ota: Host firmware version: 2.12.12[0m
+[0;32mI (2433) host_performs_slave_ota: Slave firmware version: 2.12.3[0m
+[0;32mI (2433) host_performs_slave_ota: Versions compatible - OTA not required[0m
+[0;32mI (2440) main_task: Returned from app_main()[0m

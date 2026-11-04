@@ -1,0 +1,423 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+
+import '../services/ble_service.dart';
+import '../services/cambios_db.dart';
+import '../services/database_helper.dart';
+import '../services/lineups_db.dart';
+import '../services/pantalla_ble.dart';
+import '../services/pantalla_protocolo.dart';
+
+const Color _fondoP = Color(0xFF14171C);
+const Color _superficieP = Color(0xFF1E232B);
+const Color _cianP = Color(0xFF0ABDCF);
+const Color _suaveP = Color(0xFF9AA4B2);
+
+/// Conecta con la pantalla del coach por BLE y le envia los tipos de
+/// lanzamiento, las jugadas estrategicas y una alineacion guardada.
+class EnviarPantallaScreen extends StatefulWidget {
+  const EnviarPantallaScreen({super.key});
+
+  @override
+  State<EnviarPantallaScreen> createState() => _EnviarPantallaScreenState();
+}
+
+class _EnviarPantallaScreenState extends State<EnviarPantallaScreen> {
+  final _ble = PantallaBle.instance;
+  List<ScanResult> _resultados = [];
+  List<Map<String, dynamic>> _lineups = [];
+  int? _lineupId;
+  List<Map<String, dynamic>> _lanzadores = [];
+  int? _lanzadorId;
+  bool _escaneando = false;
+  bool _conectando = false;
+  bool _verTodos = false;
+  String? _error;
+  final Map<String, String> _estado = {};
+  StreamSubscription<List<ScanResult>>? _subScan;
+
+  @override
+  void initState() {
+    super.initState();
+    _subScan = FlutterBluePlus.scanResults.listen((r) {
+      if (!mounted) return;
+      setState(() => _resultados = r);
+    });
+    _cargarLineups();
+    _cargarLanzadores();
+  }
+
+  @override
+  void dispose() {
+    _subScan?.cancel();
+    FlutterBluePlus.stopScan();
+    super.dispose();
+  }
+
+  Future<void> _cargarLineups() async {
+    final l = await DatabaseHelper.instance.obtenerLineups();
+    if (!mounted) return;
+    setState(() {
+      _lineups = l;
+      if (l.isNotEmpty) _lineupId = l.first['lineup_id'] as int;
+    });
+  }
+
+    Future<void> _cargarLanzadores() async {
+    final l = await DatabaseHelper.instance.obtenerLanzadoresPropios();
+    if (!mounted) return;
+    setState(() {
+      _lanzadores = l;
+      if (l.isNotEmpty) _lanzadorId = l.first['jugador_id'] as int;
+    });
+  }
+
+  Future<void> _enviarPerfil() async {
+    final id = _lanzadorId;
+    if (id == null) {
+      setState(() => _estado['perfil'] = 'No hay lanzadores propios');
+      return;
+    }
+    setState(() => _estado['perfil'] = 'Enviando...');
+    String res;
+    try {
+      final t = await _ble.enviar(
+        PantallaProtocolo.tTipos,
+        await PantallaProtocolo.payloadTipos(),
+      );
+      if (t != 0) {
+        res = 'Fallo al enviar los tipos (codigo $t)';
+      } else {
+        final r = await _ble.enviar(
+          PantallaProtocolo.tPerfilLanzador,
+          await PantallaProtocolo.payloadPerfilLanzador(id),
+        );
+        if (r == 0) {
+          final d = await _ble.enviar(
+            PantallaProtocolo.tPerfilDatos,
+            await PantallaProtocolo.payloadPerfilDatos(id),
+          );
+          if (d == 0) {
+            try {
+              final vistas = await PantallaProtocolo.payloadsPerfilVistas(id);
+              await _ble.enviar(PantallaProtocolo.tPerfilTipos, await PantallaProtocolo.payloadPerfilTipos(id));
+              for (final v in vistas) {
+                await _ble.enviar(PantallaProtocolo.tPerfilVista, v);
+              }
+            } catch (_) {}
+          }
+          res = d == 0
+              ? 'Perfil enviado y confirmado por la pantalla'
+              : d == -1
+                  ? 'La pantalla no respondio a los datos del perfil'
+                  : 'La pantalla rechazo los datos del perfil (codigo $d)';
+        } else {
+          res = r == -1
+              ? 'La pantalla no respondio (sin confirmacion)'
+              : 'La pantalla rechazo el perfil (codigo $r)';
+        }
+      }
+    } catch (e) {
+      res = 'Error: $e';
+    }
+    if (mounted) setState(() => _estado['perfil'] = res);
+  }
+
+  Future<void> _quitarPerfil() async {
+    setState(() => _estado['quitar'] = 'Enviando...');
+    String res;
+    try {
+      final r = await _ble.enviar(PantallaProtocolo.tQuitarPerfil, <int>[]);
+      res = r == 0
+          ? 'La pantalla vuelve a permitir todos los tipos'
+          : r == -1
+              ? 'La pantalla no respondio (sin confirmacion)'
+              : 'La pantalla rechazo el mensaje (codigo $r)';
+    } catch (e) {
+      res = 'Error: $e';
+    }
+    if (mounted) setState(() => _estado['quitar'] = res);
+  }
+Future<void> _escanear() async {
+    setState(() {
+      _error = null;
+      _resultados = [];
+    });
+    if (!await BleService.instance.solicitarPermisos()) {
+      setState(() => _error = 'Permisos de Bluetooth/ubicacion denegados');
+      return;
+    }
+    if (!await BleService.instance.bluetoothDisponible()) {
+      setState(() => _error = 'Este telefono no soporta Bluetooth Low Energy');
+      return;
+    }
+    setState(() => _escaneando = true);
+    try {
+      await FlutterBluePlus.startScan(
+        timeout: const Duration(seconds: 8),
+        withServices: _verTodos ? [] : [PantallaBle.servicio],
+      );
+    } catch (e) {
+      _error = 'No se pudo escanear: $e';
+    }
+    if (mounted) setState(() => _escaneando = false);
+  }
+
+  Future<void> _conectar(BluetoothDevice d) async {
+    setState(() {
+      _conectando = true;
+      _error = null;
+    });
+    try {
+      await FlutterBluePlus.stopScan();
+      await _ble.conectar(d);
+      final r = await _ble.enviar(
+        PantallaProtocolo.tHello,
+        PantallaProtocolo.payloadHello(),
+      );
+      if (r != 0) {
+        _error = r == -1
+            ? 'Conectado, pero la pantalla no respondio al saludo.'
+            : 'La pantalla rechazo el saludo (codigo $r).';
+      }
+    } catch (e) {
+      _error = 'Error al conectar: $e';
+    }
+    if (mounted) setState(() => _conectando = false);
+  }
+
+  Future<void> _desconectar() async {
+    await _ble.desconectar();
+    if (mounted) setState(() => _estado.clear());
+  }
+
+  Future<void> _enviar(
+    String clave,
+    int tipo,
+    Future<List<int>> Function() armar,
+  ) async {
+    setState(() => _estado[clave] = 'Enviando...');
+    String res;
+    try {
+      final r = await _ble.enviar(tipo, await armar());
+      res = r == 0
+          ? 'Enviado y confirmado por la pantalla'
+          : r == -1
+              ? 'La pantalla no respondio (sin confirmacion)'
+              : 'La pantalla rechazo el mensaje (codigo $r)';
+    } catch (e) {
+      res = 'Error: $e';
+    }
+    if (mounted) setState(() => _estado[clave] = res);
+  }
+
+  Widget _bloque(String titulo, String detalle, String clave, VoidCallback alPulsar,
+      {Widget? extra}) {
+    final e = _estado[clave];
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _superficieP,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(titulo,
+              style: const TextStyle(
+                  color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+          Text(detalle, style: const TextStyle(color: _suaveP, fontSize: 12)),
+          ?extra,
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              ElevatedButton(
+                onPressed: e == 'Enviando...' ? null : alPulsar,
+                child: const Text('Enviar'),
+              ),
+              const SizedBox(width: 12),
+              if (e != null)
+                Expanded(
+                  child: Text(e, style: const TextStyle(color: _cianP, fontSize: 12)),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _enviarDatos() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: _superficieP,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.bluetooth_connected, color: _cianP),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Conectado a ${_ble.nombre.isEmpty ? 'la pantalla' : _ble.nombre}',
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+              TextButton(onPressed: _desconectar, child: const Text('Desconectar')),
+            ],
+          ),
+        ),
+        _bloque(
+          'Tipos de lanzamiento',
+          'Catalogo completo de la app, en su orden actual.',
+          'tipos',
+          () => _enviar('tipos', PantallaProtocolo.tTipos, PantallaProtocolo.payloadTipos),
+        ),
+        _bloque(
+          'Jugadas estrategicas',
+          'Nombres de las jugadas guardadas en la app.',
+          'jugadas',
+          () => _enviar('jugadas', PantallaProtocolo.tJugadas, PantallaProtocolo.payloadJugadas),
+        ),
+        _bloque(
+          'Alineacion',
+          'Orden al bate, posiciones y lanzador de un lineup guardado.',
+          'lineup',
+          () {
+            final id = _lineupId;
+            if (id == null) {
+              setState(() => _estado['lineup'] = 'Primero crea un lineup');
+              return;
+            }
+            _enviar('lineup', PantallaProtocolo.tLineup,
+                () => PantallaProtocolo.payloadLineup(id));
+          },
+          extra: _lineups.isEmpty
+              ? null
+              : DropdownButton<int>(
+                  isExpanded: true,
+                  value: _lineupId,
+                  dropdownColor: _superficieP,
+                  style: const TextStyle(color: Colors.white),
+                  items: [
+                    for (final l in _lineups)
+                      DropdownMenuItem<int>(
+                        value: l['lineup_id'] as int,
+                        child: Text('${l['nombre']}'),
+                      ),
+                  ],
+                  onChanged: (v) => setState(() => _lineupId = v),
+                ),
+        ),
+        _bloque(
+          'Perfil de lanzador',
+          'Envia los tipos y deja seleccionables solo los que el lanzador tiene; el resto queda restringido.',
+          'perfil',
+          _enviarPerfil,
+          extra: _lanzadores.isEmpty
+              ? null
+              : DropdownButton<int>(
+                  isExpanded: true,
+                  value: _lanzadorId,
+                  dropdownColor: _superficieP,
+                  style: const TextStyle(color: Colors.white),
+                  items: [
+                    for (final l in _lanzadores)
+                      DropdownMenuItem<int>(
+                        value: l['jugador_id'] as int,
+                        child: Text('${l['numero'] ?? '-'}  ${l['nombre']}'),
+                      ),
+                  ],
+                  onChanged: (v) => setState(() => _lanzadorId = v),
+                ),
+        ),
+        _bloque(
+          'Quitar restriccion',
+          'La pantalla vuelve a permitir todos los tipos de lanzamiento.',
+          'quitar',
+          _quitarPerfil,
+        ),
+      ],
+    );
+  }
+
+  Widget _buscar() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          child: Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _escaneando || _conectando ? null : _escanear,
+                  icon: _escaneando
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.bluetooth_searching),
+                  label: Text(_escaneando ? 'Buscando...' : 'Buscar pantalla'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              FilterChip(
+                label: const Text('Ver todos'),
+                selected: _verTodos,
+                onSelected: (v) => setState(() => _verTodos = v),
+              ),
+            ],
+          ),
+        ),
+        if (_error != null)
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(_error!, style: const TextStyle(color: Colors.redAccent)),
+          ),
+        Expanded(
+          child: _resultados.isEmpty
+              ? const Center(
+                  child: Text('Sin dispositivos todavia',
+                      style: TextStyle(color: _suaveP)))
+              : ListView(
+                  children: [
+                    for (final r in _resultados)
+                      ListTile(
+                        title: Text(
+                          r.device.platformName.isNotEmpty
+                              ? r.device.platformName
+                              : '(sin nombre)',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        subtitle: Text('${r.device.remoteId}  RSSI ${r.rssi}',
+                            style: const TextStyle(color: _suaveP)),
+                        trailing: ElevatedButton(
+                          onPressed: _conectando ? null : () => _conectar(r.device),
+                          child: Text(_conectando ? '...' : 'Conectar'),
+                        ),
+                      ),
+                  ],
+                ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: _fondoP,
+      appBar: AppBar(title: const Text('Pantalla del coach')),
+      body: _ble.conectado ? _enviarDatos() : _buscar(),
+    );
+  }
+}

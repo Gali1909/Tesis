@@ -1,0 +1,85 @@
+﻿
+> lib\services\database_helper.dart:953:  Future<LanzadorPerfilHistorico?> obtenerLanzadorPerfilHistorico(
+  lib\services\database_helper.dart:954:    int lanzadorId,
+  lib\services\database_helper.dart:955:  ) async {
+  lib\services\database_helper.dart:956:    final db = await instance.database;
+  lib\services\database_helper.dart:957:    final resultado = await db.query(
+  lib\services\database_helper.dart:958:      'lanzador_perfil_historico',
+  lib\services\database_helper.dart:959:      where: 'lanzador_id = ?',
+  lib\services\database_helper.dart:960:      whereArgs: [lanzadorId],
+  lib\services\database_helper.dart:961:    );
+  lib\services\database_helper.dart:962:    if (resultado.isEmpty) return null;
+  lib\services\database_helper.dart:963:    return LanzadorPerfilHistorico.fromMap(resultado.first);
+  lib\services\database_helper.dart:964:  }
+  lib\services\database_helper.dart:965:
+  lib\services\database_helper.dart:966:  Future<List<int>> obtenerTemporadasLanzador(int lanzadorId) async {
+  lib\services\database_helper.dart:967:    final db = await instance.database;
+  lib\services\database_helper.dart:968:    final resultado = await db.query(
+  lib\services\database_helper.dart:969:      'lanzador_perfil',
+  lib\services\database_helper.dart:970:      columns: ['temporada'],
+  lib\services\database_helper.dart:971:      where: 'lanzador_id = ?',
+  lib\services\database_helper.dart:972:      whereArgs: [lanzadorId],
+  lib\services\database_helper.dart:973:      orderBy: 'temporada DESC',
+  lib\services\database_helper.dart:974:    );
+  lib\services\database_helper.dart:975:    return resultado.map((mapa) => mapa['temporada'] as int).toList();
+  lib\services\database_helper.dart:976:  }
+  lib\services\database_helper.dart:977:
+  lib\services\database_helper.dart:978:  Future<int> guardarLanzadorPerfil(LanzadorPerfil perfil) async {
+> lib\services\database_helper.dart:1507:  Future<Map<String, dynamic>> ultimasSalidasLanzador(int lanzadorId, int n) 
+async {
+  lib\services\database_helper.dart:1508:    final db = await database;
+  lib\services\database_helper.dart:1509:    final r = await db.rawQuery('''
+  lib\services\database_helper.dart:1510:      SELECT COUNT(*) AS salidas,
+  lib\services\database_helper.dart:1511:             COALESCE(SUM(CAST(ROUND(innings_lanzados_juego * 3) AS 
+INTEGER)), 0) AS outs,
+  lib\services\database_helper.dart:1512:             COALESCE(SUM(picheos_lanzados), 0) AS picheos,
+  lib\services\database_helper.dart:1513:             COALESCE(SUM(carreras_permitidas), 0) AS cp,
+  lib\services\database_helper.dart:1514:             COALESCE(SUM(carreras_limpias), 0) AS cl,
+  lib\services\database_helper.dart:1515:             COALESCE(SUM(hits_permitidos), 0) AS h,
+  lib\services\database_helper.dart:1516:             COALESCE(SUM(ponches), 0) AS k,
+  lib\services\database_helper.dart:1517:             COALESCE(SUM(bases_por_bolas), 0) AS bb
+  lib\services\database_helper.dart:1518:      FROM (
+  lib\services\database_helper.dart:1519:        SELECT e.* FROM estadistica_juego_lanzador e
+  lib\services\database_helper.dart:1520:        JOIN juego j ON j.juego_id = e.juego_id
+  lib\services\database_helper.dart:1521:        WHERE e.lanzador_id = ?
+  lib\services\database_helper.dart:1522:        ORDER BY j.fecha DESC, j.juego_id DESC
+  lib\services\database_helper.dart:1523:        LIMIT ?
+  lib\services\database_helper.dart:1524:      )
+  lib\services\database_helper.dart:1525:    ''', [lanzadorId, n]);
+  lib\services\database_helper.dart:1526:
+  lib\services\database_helper.dart:1527:    final m = r.first;
+  lib\services\database_helper.dart:1528:    final outs = m['outs'] as int;
+  lib\services\database_helper.dart:1529:    final cl = m['cl'] as int;
+  lib\services\database_helper.dart:1530:    final h = m['h'] as int;
+  lib\services\database_helper.dart:1531:    final k = m['k'] as int;
+  lib\services\database_helper.dart:1532:    final bb = m['bb'] as int;
+> lib\services\database_helper.dart:1764:  Future<LanzadorPerfil?> obtenerLanzadorPerfilTotal(int lanzadorId, int 
+temporada) async {
+  lib\services\database_helper.dart:1765:    final base = await obtenerLanzadorPerfil(lanzadorId, temporada);
+  lib\services\database_helper.dart:1766:    final db = await database;
+  lib\services\database_helper.dart:1767:    final r = await db.rawQuery('''
+  lib\services\database_helper.dart:1768:      SELECT COUNT(*) AS salidas,
+  lib\services\database_helper.dart:1769:             COALESCE(SUM(CAST(ROUND(e.innings_lanzados_juego * 3) AS 
+INTEGER)), 0) AS outs,
+  lib\services\database_helper.dart:1770:             COALESCE(SUM(e.hits_permitidos), 0) AS h,
+  lib\services\database_helper.dart:1771:             COALESCE(SUM(e.carreras_limpias), 0) AS cl,
+  lib\services\database_helper.dart:1772:             COALESCE(SUM(e.ponches), 0) AS k,
+  lib\services\database_helper.dart:1773:             COALESCE(SUM(e.bases_por_bolas), 0) AS bb
+  lib\services\database_helper.dart:1774:      FROM estadistica_juego_lanzador e
+  lib\services\database_helper.dart:1775:      JOIN juego j ON j.juego_id = e.juego_id
+  lib\services\database_helper.dart:1776:      WHERE e.lanzador_id = ? AND strftime('%Y', j.fecha) = ?
+  lib\services\database_helper.dart:1777:    ''', [lanzadorId, temporada.toString()]);
+  lib\services\database_helper.dart:1778:
+  lib\services\database_helper.dart:1779:    final m = r.first;
+  lib\services\database_helper.dart:1780:    int n(String k) => (m[k] as num).toInt();
+  lib\services\database_helper.dart:1781:    final salidas = n('salidas');
+  lib\services\database_helper.dart:1782:    if (base == null && salidas == 0) return null;
+  lib\services\database_helper.dart:1783:
+  lib\services\database_helper.dart:1784:    final outsBase = base == null ? 0 : _outsDeInnings(base.inningsLanzados);
+  lib\services\database_helper.dart:1785:
+  lib\services\database_helper.dart:1786:    return LanzadorPerfil(
+  lib\services\database_helper.dart:1787:      id: base?.id,
+  lib\services\database_helper.dart:1788:      lanzadorId: lanzadorId,
+  lib\services\database_helper.dart:1789:      temporada: temporada,
+
+

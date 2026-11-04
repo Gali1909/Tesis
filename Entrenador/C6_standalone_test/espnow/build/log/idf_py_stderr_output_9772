@@ -1,0 +1,25 @@
+[0;33m--- Warning: GDB cannot open serial ports accessed as COMx[0m
+[0;33m--- Using \\.\COM23 instead...[0m
+[0;33m--- esp-idf-monitor 1.9.0 on \\.\COM23 115200[0m
+[0;33m--- Quit: Ctrl+] | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H[0m
+[0m--- 0x4080639c: [0;33mrv_utils_wait_for_intr[0m[0m at [0;32mC:/esp/v5.4.4/esp-idf/components/riscv/include/riscv/rv_utils.h[0m[0m:[1;31m62[0m
+[0m--- (inlined by) [0;33mesp_cpu_wait_for_intr[0m[0m at [0;32mC:/esp/v5.4.4/esp-idf/components/esp_hw_support/cpu.c[0m[0m:[1;31m62[0m
+[0;33m--- Stack dump detected[0m
+[0m--- 0x42058322: [0;33mwDev_Rxbuf_Init[0m[0m at [0;32m??[0m[0m:[1;31m?[0m
+[0m--- 0x42058252: [0;33mwDev_Rxbuf_Init[0m[0m at [0;32m??[0m[0m:[1;31m?[0m
+[0m--- 0x40028192: [0;33m__retarget_lock_release_recursive[0m[0m in [0;32mROM[0m
+[0m--- 0x40800001: [0;33m_vector_table[0m[0m at [0;32mC:/esp/v5.4.4/esp-idf/components/riscv/vectors_intc.S[0m[0m:[1;31m54[0m
+[0;33m
+--- Backtrace:
+
+[0m
+[0m--- 0x4001975a: [0;33msoftware_reset_cpu[0m[0m in [0;32mROM[0m
+[1;31m--- Error: ClearCommError failed (PermissionError(13, 'El dispositivo no reconoce el comando.', None, 22))[0m
+[0;33m--- Waiting for the device to reconnect[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m[0m
+[1;31m--- Error: ClearCommError failed (PermissionError(13, 'El dispositivo no reconoce el comando.', None, 22))[0m
+[0;33m--- Waiting for the device to reconnect[0m[0;33m.[0m[0;33m[0m
+[1;31m--- Error: ClearCommError failed (PermissionError(13, 'El dispositivo no reconoce el comando.', None, 22))[0m
+[0;33m--- Waiting for the device to reconnect[0m[0;33m.[0m[0;33m[0m
+[1;31m--- Error: ClearCommError failed (PermissionError(13, 'El dispositivo no reconoce el comando.', None, 22))[0m
+[0;33m--- Waiting for the device to reconnect[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m.[0m[0;33m[0m
+[0m
