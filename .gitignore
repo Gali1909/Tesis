@@ -1,0 +1,6 @@
+﻿# Respaldos y parches locales de la app movil
+App_movil/**/*.bak*
+App_movil/**/*.roto_*
+App_movil/**/*.ps1
+App_movil/entrenador_app/lib.zip
+App_movil/revision*.txt
