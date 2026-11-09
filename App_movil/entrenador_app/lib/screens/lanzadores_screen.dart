@@ -8,7 +8,7 @@ import '../models/lanzador_rol.dart';
 import '../models/lanzador_tipo_picheo.dart';
 import '../services/database_helper.dart';
 import '../widgets/barra_inferior_app.dart';
-import 'agregar_jugador_screen.dart';
+import 'nuevo_lanzador_screen.dart';
 import 'perfil_jugador_screen.dart';
 
 const Color _fondo = Color(0xFFF4F6FA);
@@ -96,10 +96,7 @@ class _LanzadoresScreenState extends State<LanzadoresScreen> {
     final ok = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (_) => AgregarJugadorScreen(
-          equipoId: widget.equipoId,
-          rolInicial: 'lanzador',
-        ),
+        builder: (_) => NuevoLanzadorScreen(equipoId: widget.equipoId),
       ),
     );
     if (ok == true) _cargar();
