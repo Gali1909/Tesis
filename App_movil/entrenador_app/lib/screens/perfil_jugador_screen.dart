@@ -19,6 +19,7 @@ import 'registrar_salida_screen.dart';
 import 'historial_salidas_screen.dart';
 import 'editar_jugador_screen.dart';
 import 'cargar_tipo_picheo_screen.dart';
+import '../widgets/barra_inferior_app.dart';
 import '../widgets/boton_enviar_perfil_pantalla.dart';
 
 const Color _colorAcento = Color(0xFF1D4ED8);
@@ -246,6 +247,7 @@ class _PerfilJugadorScreenState extends State<PerfilJugadorScreen> {
         scrolledUnderElevation: 0,
         title: const Text('Lanzadores', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
       ),
+      bottomNavigationBar: const BarraInferiorApp(activa: SeccionBarra.equipo),
       body: _cargando
           ? const Center(child: CircularProgressIndicator())
           : _error != null
