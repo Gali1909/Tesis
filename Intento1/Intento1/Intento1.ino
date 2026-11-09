@@ -13,6 +13,7 @@
 #include <Adafruit_GFX.h>
 
 #include "ui.h"
+#include "ui_splash.h"
 #include "ui_idioma_dispositivo.h"
 #include "ui_wifi_estado.h"
 #include "ui_bluetooth_estado.h"
@@ -577,6 +578,7 @@ void setup()
   gfx.fillScreen(TFT_BLACK);
   // lv_demo_widgets();//Main UI interface
   ui_init();
+  ui_splash_show();   // logo Diamond Call System durante 5 min antes de la pantalla de inicio
 
   Serial.println( "Setup done" );
 }

@@ -1,5 +1,6 @@
 #include "main.h"
 #include "ui.h"
+#include "ui_splash.h"
 #include "jugadas_dynamic.h"
 #include "alineacion_dynamic.h"
 #include "alineacion_dynamic_EN.h"
@@ -175,6 +176,7 @@ void app_main(void)
 
     if (lvgl_port_lock(0)) { 
         ui_init(); 
+        ui_splash_show();   /* logo Diamond Call System durante 5 min antes del menu principal */
         perfil_lanzador_rx_init();
         lvgl_port_unlock(); } 
      else { init_fail_handler("LVGL lock", ESP_FAIL);
