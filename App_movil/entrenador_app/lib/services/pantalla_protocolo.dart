@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
@@ -323,13 +323,10 @@ class PantallaProtocolo {
   /// Tipos de lanzamiento: "n" y luego "slot|nombre". El slot es la posicion
   /// en la lista (0, 1, 2...), en el orden del catalogo de la app.
   static Future<List<int>> payloadTipos() async {
-    final db = await DatabaseHelper.instance.database;
-    final filas = await db.rawQuery(
-      'SELECT nombre FROM tipo_lanzamiento ORDER BY tipo_lanzamiento_id',
-    );
-    final sb = StringBuffer('${filas.length}\n');
-    for (var i = 0; i < filas.length; i++) {
-      sb.write('$i|${_limpio(filas[i]['nombre'])}\n');
+    final nombres = DatabaseHelper.tiposLanzamientoPredeterminados;
+    final sb = StringBuffer('${nombres.length}\n');
+    for (var i = 0; i < nombres.length; i++) {
+      sb.write('$i|${_limpio(nombres[i])}\n');
     }
     return _codificar(sb.toString());
   }

@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -83,42 +83,33 @@ class _EnviarPantallaScreenState extends State<EnviarPantallaScreen> {
     setState(() => _estado['perfil'] = 'Enviando...');
     String res;
     try {
-      final t = await _ble.enviar(
-        PantallaProtocolo.tTipos,
-        await PantallaProtocolo.payloadTipos(),
-      );
-      if (t != 0) {
-        res = 'Fallo al enviar los tipos (codigo $t)';
-      } else {
-        final r = await _ble.enviar(
-          PantallaProtocolo.tPerfilLanzador,
-          await PantallaProtocolo.payloadPerfilLanzador(id),
-        );
-        if (r == 0) {
-          final d = await _ble.enviar(
-            PantallaProtocolo.tPerfilDatos,
-            await PantallaProtocolo.payloadPerfilDatos(id),
-          );
-          if (d == 0) {
-            try {
-              final vistas = await PantallaProtocolo.payloadsPerfilVistas(id);
-              await _ble.enviar(PantallaProtocolo.tPerfilTipos, await PantallaProtocolo.payloadPerfilTipos(id));
-              for (final v in vistas) {
-                await _ble.enviar(PantallaProtocolo.tPerfilVista, v);
-              }
-            } catch (_) {}
-          }
-          res = d == 0
-              ? 'Perfil enviado y confirmado por la pantalla'
-              : d == -1
-                  ? 'La pantalla no respondio a los datos del perfil'
-                  : 'La pantalla rechazo los datos del perfil (codigo $d)';
-        } else {
-          res = r == -1
-              ? 'La pantalla no respondio (sin confirmacion)'
-              : 'La pantalla rechazo el perfil (codigo $r)';
+      final fallos = <String>[];
+      Future<bool> paso(String nombre, int tipo, List<int> payload) async {
+        final r = await _ble.enviar(tipo, payload);
+        if (r != 0) {
+          fallos.add('$nombre (${r == -1 ? "sin respuesta" : "codigo $r"})');
+        }
+        return r == 0;
+      }
+
+      final ok = await paso('tipos', PantallaProtocolo.tTipos,
+              await PantallaProtocolo.payloadTipos()) &&
+          await paso('perfil', PantallaProtocolo.tPerfilLanzador,
+              await PantallaProtocolo.payloadPerfilLanzador(id)) &&
+          await paso('datos', PantallaProtocolo.tPerfilDatos,
+              await PantallaProtocolo.payloadPerfilDatos(id));
+      if (ok) {
+        await paso('tipos del perfil', PantallaProtocolo.tPerfilTipos,
+            await PantallaProtocolo.payloadPerfilTipos(id));
+        final vistas = await PantallaProtocolo.payloadsPerfilVistas(id);
+        for (var i = 0; i < vistas.length; i++) {
+          if (fallos.isNotEmpty) break;
+          await paso('vista ${i + 1}', PantallaProtocolo.tPerfilVista, vistas[i]);
         }
       }
+      res = fallos.isEmpty
+          ? 'Perfil enviado y confirmado por la pantalla'
+          : 'Fallo al enviar: ${fallos.join(", ")}';
     } catch (e) {
       res = 'Error: $e';
     }
