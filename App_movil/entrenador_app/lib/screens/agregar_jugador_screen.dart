@@ -7,11 +7,13 @@ import '../services/database_helper.dart';
 class AgregarJugadorScreen extends StatefulWidget {
   final int equipoId;
   final Jugador? jugadorExistente;
+  final String rolInicial;
 
   const AgregarJugadorScreen({
     super.key,
     required this.equipoId,
     this.jugadorExistente,
+    this.rolInicial = 'bateador',
   });
 
   @override
@@ -31,6 +33,7 @@ class _AgregarJugadorScreenState extends State<AgregarJugadorScreen> {
   @override
   void initState() {
     super.initState();
+    _rol = widget.rolInicial;
     final jugador = widget.jugadorExistente;
     if (jugador != null) {
       _nombreController.text = jugador.nombre;

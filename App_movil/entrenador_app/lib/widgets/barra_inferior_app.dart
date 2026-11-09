@@ -14,7 +14,10 @@ enum SeccionBarra { inicio, equipo, analisis, ajustes }
 class BarraInferiorApp extends StatelessWidget {
   final SeccionBarra activa;
 
-  const BarraInferiorApp({super.key, required this.activa});
+  /// Si se da, reemplaza la accion por defecto del boton Equipo.
+  final VoidCallback? alTocarEquipo;
+
+  const BarraInferiorApp({super.key, required this.activa, this.alTocarEquipo});
 
   void _irInicio(BuildContext context) {
     Navigator.of(context).popUntil((ruta) => ruta.isFirst);
@@ -95,7 +98,7 @@ class BarraInferiorApp extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _item(Icons.home_outlined, 'Inicio', SeccionBarra.inicio, () => _irInicio(context)),
-              _item(Icons.groups_outlined, 'Equipo', SeccionBarra.equipo, () => _irEquipo(context)),
+              _item(Icons.groups_outlined, 'Equipo', SeccionBarra.equipo, alTocarEquipo ?? () => _irEquipo(context)),
               _item(Icons.bar_chart, 'Análisis', SeccionBarra.analisis, () => _irAnalisis(context)),
               _item(Icons.settings_outlined, 'Ajustes', SeccionBarra.ajustes, () => _abrirAjustes(context)),
             ],

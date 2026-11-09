@@ -10,6 +10,7 @@ import 'debug_tablas_screen.dart';
 import 'enviar_pantalla_screen.dart';
 import 'equipos_screen.dart';
 import 'juego_vivo_inicio_screen.dart';
+import 'lanzadores_screen.dart';
 import 'jugadores_libres_screen.dart';
 import 'lineups_screen.dart';
 import 'record_juegos_screen.dart';
@@ -412,10 +413,7 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
     final visibles = _lanzadores.take(2).toList();
     return _tarjeta(
       color: const Color(0xFFE3ECFF),
-      onTap: () => _ir(RosterScreen(
-        equipoId: widget.equipoId,
-        nombreEquipo: widget.nombreEquipo,
-      )),
+      onTap: () => _ir(LanzadoresScreen(equipoId: widget.equipoId)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
