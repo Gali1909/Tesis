@@ -168,6 +168,8 @@ class _LanzadoresScreenState extends State<LanzadoresScreen> {
         return 'Splitter';
       case 'Knuckleball':
         return 'Nudillo';
+      case 'Forkball':
+        return 'Tenedor';
       default:
         return tipo;
     }

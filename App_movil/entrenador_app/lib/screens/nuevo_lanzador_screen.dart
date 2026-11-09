@@ -18,14 +18,21 @@ const Color _borde = Color(0xFFE2E8F0);
 const Color _bordeCampo = Color(0xFFCBD5E1);
 const Color _textoChip = Color(0xFF334155);
 
-/// Lanzamientos que se ofrecen como botones: nombre en pantalla -> nombre en la base de datos.
+/// Lanzamientos que se ofrecen como botones (los mismos de la pantalla del ESP32):
+/// nombre en pantalla -> nombre en la base de datos.
 const List<List<String>> _lanzamientosBase = [
-  ['Recta 4 costuras', 'Four-Seam Fastball'],
-  ['Recta 2 costuras', 'Two-Seam Fastball'],
-  ['Slider', 'Slider'],
-  ['Cambio', 'Changeup'],
-  ['Curva', 'Curveball'],
+  ['Recta de 4 costuras', 'Four-Seam Fastball'],
+  ['Recta de 2 costuras', 'Two-Seam Fastball'],
+  ['Sinker', 'Sinker'],
   ['Cutter', 'Cutter'],
+  ['Split-Finger', 'Split-Finger Fastball'],
+  ['Curva', 'Curveball'],
+  ['Slider', 'Slider'],
+  ['Sweeper', 'Sweeper'],
+  ['Cambio de velocidad', 'Changeup'],
+  ['Circle Change', 'Circle Change'],
+  ['Splitter', 'Splitter'],
+  ['Tenedor', 'Forkball'],
 ];
 
 /// Formulario para agregar un lanzador nuevo al equipo.
