@@ -12,14 +12,15 @@ import '../widgets/boton_enviar_perfil_pantalla.dart';
 import 'agregar_jugador_screen.dart';
 import 'analisis_jugador_card.dart';
 import 'analisis_screen.dart';
-import 'cargar_lanzador_perfil_historico_screen.dart';
-import 'cargar_lanzador_perfil_screen.dart';
+
+
 import 'cargar_tipo_picheo_screen.dart';
 import 'editar_jugador_screen.dart';
 import 'equipos_anteriores_card.dart';
 import 'historial_salidas_screen.dart';
 import 'perfil_bateador_screen.dart';
 import 'registrar_salida_screen.dart';
+import 'editar_estadisticas_lanzador_screen.dart';
 
 // Colores tomados del diseno "perfil de lanzador".
 const Color _fondo = Color(0xFFF4F6FA);
@@ -243,7 +244,8 @@ class _PerfilJugadorScreenState extends State<PerfilJugadorScreen> {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CargarLanzadorPerfilScreen(
+        builder: (context) => EditarEstadisticasLanzadorScreen(
+          nombreLanzador: _jugadorActual.nombre,
           lanzadorId: _id,
           temporadaInicial: _temporadaSeleccionada,
         ),
@@ -256,7 +258,12 @@ class _PerfilJugadorScreenState extends State<PerfilJugadorScreen> {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CargarLanzadorPerfilHistoricoScreen(lanzadorId: _id),
+        builder: (context) => EditarEstadisticasLanzadorScreen(
+          lanzadorId: _id,
+          nombreLanzador: _jugadorActual.nombre,
+          temporadaInicial: _temporadaSeleccionada,
+          abrirCarrera: true,
+        ),
       ),
     );
     await _cargarDatos();
